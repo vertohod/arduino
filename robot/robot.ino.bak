@@ -1,0 +1,340 @@
+#include <LiquidCrystal_I2C.h>
+#include <IRremote.h>
+#include <PS2X_lib.h> 
+#include <AFMotor.h>
+#include <Wire.h>
+
+#include "irremote_code.h"
+#include "timer.h"
+#include "stm.h"
+
+#define PS2_DAT     45
+#define PS2_CMD     47
+#define PS2_CLK     49
+#define PS2_SEL     51
+
+#define pressures   false
+#define rumble      true
+
+PS2X ps2x;
+int error = 0;
+byte type = 0;
+byte vibrate = 0;
+
+namespace irremote {
+    const int RECV_PIN = 33;
+    IRrecv irrecv(RECV_PIN);
+    decode_results results;
+}
+
+namespace lcd {
+    const size_t cols = 20;
+    const size_t rows = 4;
+    LiquidCrystal_I2C display(0x27, cols, rows);
+}
+
+namespace motor {
+    const byte speed_max = 255;
+    const byte speed_rise = 5;
+    unsigned int speed_current = 0;
+    unsigned int speed_current_max = speed_max;
+    bool motor_turn_on = false;
+
+    AF_DCMotor mtr_r(1);
+    AF_DCMotor mtr_l(4);
+}
+
+namespace global {
+    timer timer_command(200);
+    timer timer_lamp_status_change(50);
+    timer timer_lamp_lr_switch(500);
+    timer timer_speed_rise(40);
+}
+
+namespace headlamp {
+    const int lamp_l = 44;
+    const int lamp_r = 40;
+
+    bool headlamp_on = false;
+    bool lamp_status_on = false;
+    bool lamp_on_lr = false;
+}
+
+stm st(lcd::display, lcd::cols, lcd::rows - 1);
+
+void print_speed_limit(byte speed)
+{
+    lcd::display.setCursor(0, 3);
+    lcd::display.print("Limit:   ");
+    lcd::display.setCursor(speed < 10 ? 8 : speed < 100 ? 7 : 6, 3);
+    lcd::display.print(speed);
+}
+
+void print_speed(byte speed)
+{
+    lcd::display.setCursor(10, 3);
+    lcd::display.print("Speed:   ");
+    lcd::display.setCursor((speed < 10) ? 18 : ((speed < 100) ? 17 : 16), 3);
+    lcd::display.print(speed);
+}
+
+void setup()
+{
+    pinMode(headlamp::lamp_l, OUTPUT);
+    pinMode(headlamp::lamp_r, OUTPUT);
+
+    irremote::irrecv.enableIRIn();
+    irremote::irrecv.blink13(true);
+
+    lcd::display.init();
+    lcd::display.backlight();
+
+    motor::mtr_r.setSpeed(0);
+    motor::mtr_r.run(RELEASE);
+
+    motor::mtr_l.setSpeed(0);
+    motor::mtr_l.run(RELEASE);
+
+    print_speed_limit(motor::speed_current_max);
+    print_speed(0);
+
+
+    Serial.begin(57600);
+    Serial.print("Connect");
+
+    error = ps2x.config_gamepad(PS2_CLK, PS2_CMD, PS2_SEL, PS2_DAT, pressures, rumble);
+
+    if(error == 0){
+        Serial.print("Found Controller, configured successful ");
+        Serial.print("pressures = ");
+        if (pressures)
+            Serial.println("true ");
+        else
+            Serial.println("false");
+        Serial.print("rumble = ");
+        if (rumble)
+            Serial.println("true)");
+        else
+            Serial.println("false");
+        Serial.println("Try out all the buttons, X will vibrate the controller, faster as you press harder;");
+        Serial.println("holding L1 or R1 will print out the analog stick values.");
+        Serial.println("Note: Go to www.billporter.info for updates and to report bugs.");
+    }  
+    else if(error == 1)
+        Serial.println("No controller found, check wiring, see readme.txt to enable debug. visit www.billporter.info for troubleshooting tips");
+
+    else if(error == 2)
+        Serial.println("Controller found but not accepting commands. see readme.txt to enable debug. Visit www.billporter.info for troubleshooting tips");
+
+    else if(error == 3)
+        Serial.println("Controller refusing to enter Pressures mode, may not support it. ");
+
+    Serial.print(ps2x.Analog(1), HEX);
+
+    type = ps2x.readType(); 
+    switch(type) {
+        case 0:
+            Serial.print("Unknown Controller type found ");
+            break;
+        case 1:
+            Serial.print("DualShock Controller found ");
+            break;
+        case 2:
+            Serial.print("GuitarHero Controller found ");
+            break;
+        case 3:
+            Serial.print("Wireless Sony DualShock Controller found ");
+            break;
+    }
+}
+
+void loop()
+{
+    auto time_current = millis();
+
+    if (irremote::irrecv.decode(&irremote::results)) {
+        auto code = irremote::results.value;
+        char command = translate_code(code);
+        irremote::irrecv.resume();
+
+        if (command == 'c') {
+            global::timer_command.update(time_current);
+        } else if (command == 't') {
+            motor::motor_turn_on = true;
+            motor::mtr_r.run(FORWARD);
+            motor::mtr_l.run(FORWARD);
+            motor::mtr_r.setSpeed(motor::speed_current);
+            motor::mtr_l.setSpeed(motor::speed_current);
+            global::timer_command.update(time_current);
+            st << "Command: " << stm::dec << command << stm::endl;
+        } else if (command == 'd') {
+            motor::motor_turn_on = true;
+            motor::mtr_r.run(BACKWARD);
+            motor::mtr_l.run(BACKWARD);
+            motor::mtr_r.setSpeed(motor::speed_current);
+            motor::mtr_l.setSpeed(motor::speed_current);
+            global::timer_command.update(time_current);
+            st << "Command: " << stm::dec << command << stm::endl;
+        } else if (command == 'l') {
+            motor::motor_turn_on = true;
+            motor::mtr_r.run(FORWARD);
+            motor::mtr_l.run(BACKWARD);
+            motor::mtr_r.setSpeed(motor::speed_current);
+            motor::mtr_l.setSpeed(motor::speed_current);
+            global::timer_command.update(time_current);
+            st << "Command: " << stm::dec << command << stm::endl;
+        } else if (command == 'r') {
+            motor::motor_turn_on = true;
+            motor::mtr_r.run(BACKWARD);
+            motor::mtr_l.run(FORWARD);
+            motor::mtr_r.setSpeed(motor::speed_current);
+            motor::mtr_l.setSpeed(motor::speed_current);
+            global::timer_command.update(time_current);
+            st << "Command: " << stm::dec << command << stm::endl;
+        } else if (command == 'o') {
+            headlamp::headlamp_on = !headlamp::headlamp_on;
+            if (!headlamp::headlamp_on) {
+                digitalWrite(headlamp::lamp_l, LOW);
+                digitalWrite(headlamp::lamp_r, LOW);
+            }
+        } else if (command == '1') {
+            motor::speed_current_max = 50;
+            print_speed_limit(motor::speed_current_max);
+        } else if (command == '2') {
+            motor::speed_current_max = 100;
+            print_speed_limit(motor::speed_current_max);
+        } else if (command == '3') {
+            motor::speed_current_max = 150;
+            print_speed_limit(motor::speed_current_max);
+        } else if (command == '4') {
+            motor::speed_current_max = 200;
+            print_speed_limit(motor::speed_current_max);
+        } else if (command == '5') {
+            motor::speed_current_max = motor::speed_max;
+            print_speed_limit(motor::speed_current_max);
+        }
+    }
+
+    if (global::timer_command.check_less(time_current)) {
+        if (global::timer_speed_rise.check(time_current)) {
+            motor::speed_current += motor::speed_rise;
+            if (motor::speed_current > motor::speed_current_max) {
+                motor::speed_current = motor::speed_current_max;
+            }
+            motor::mtr_r.setSpeed(motor::speed_current);
+            motor::mtr_l.setSpeed(motor::speed_current);
+
+            print_speed(motor::speed_current);
+        }
+    } else if (motor::motor_turn_on) {
+        motor::speed_current = 0;
+        motor::mtr_r.setSpeed(motor::speed_current);
+        motor::mtr_l.setSpeed(motor::speed_current);
+        motor::mtr_r.run(RELEASE);
+        motor::mtr_l.run(RELEASE);
+        motor::motor_turn_on = false;
+        print_speed(motor::speed_current);
+    }
+
+    if (headlamp::headlamp_on && global::timer_lamp_status_change.check(time_current)) {
+        headlamp::lamp_status_on = !headlamp::lamp_status_on;
+
+        if (global::timer_lamp_lr_switch.check(time_current)) {
+            headlamp::lamp_on_lr = !headlamp::lamp_on_lr;
+        }
+        digitalWrite(headlamp::lamp_l, (headlamp::lamp_status_on && headlamp::lamp_on_lr) ? HIGH : LOW);
+        digitalWrite(headlamp::lamp_r, (headlamp::lamp_status_on && !headlamp::lamp_on_lr) ? HIGH : LOW);
+    }
+
+    if(error == 1) //skip loop if no controller found
+        return; 
+
+    if(type == 2){ //Guitar Hero Controller
+        ps2x.read_gamepad();          //read controller 
+
+        if(ps2x.ButtonPressed(GREEN_FRET))
+            Serial.println("Green Fret Pressed");
+        if(ps2x.ButtonPressed(RED_FRET))
+            Serial.println("Red Fret Pressed");
+        if(ps2x.ButtonPressed(YELLOW_FRET))
+            Serial.println("Yellow Fret Pressed");
+        if(ps2x.ButtonPressed(BLUE_FRET))
+            Serial.println("Blue Fret Pressed");
+        if(ps2x.ButtonPressed(ORANGE_FRET))
+            Serial.println("Orange Fret Pressed"); 
+
+        if(ps2x.ButtonPressed(STAR_POWER))
+            Serial.println("Star Power Command");
+
+        if(ps2x.Button(UP_STRUM))          //will be TRUE as long as button is pressed
+            Serial.println("Up Strum");
+        if(ps2x.Button(DOWN_STRUM))
+            Serial.println("DOWN Strum");
+
+        if(ps2x.Button(PSB_START))         //will be TRUE as long as button is pressed
+            Serial.println("Start is being held");
+        if(ps2x.Button(PSB_SELECT))
+            Serial.println("Select is being held");
+
+        if(ps2x.Button(ORANGE_FRET)) {     // print stick value IF TRUE
+            Serial.print("Wammy Bar Position:");
+            Serial.println(ps2x.Analog(WHAMMY_BAR), DEC); 
+        } 
+    }
+    else { //DualShock Controller
+        ps2x.read_gamepad(false, vibrate); //read controller and set large motor to spin at 'vibrate' speed
+
+        if(ps2x.Button(PSB_START))         //will be TRUE as long as button is pressed
+            Serial.println("Start is being held");
+        if(ps2x.Button(PSB_SELECT))
+            Serial.println("Select is being held");      
+
+        if(ps2x.Button(PSB_PAD_UP)) {      //will be TRUE as long as button is pressed
+            Serial.print("Up held this hard: ");
+            Serial.println(ps2x.Analog(PSAB_PAD_UP), DEC);
+        }
+        if(ps2x.Button(PSB_PAD_RIGHT)){
+            Serial.print("Right held this hard: ");
+            Serial.println(ps2x.Analog(PSAB_PAD_RIGHT), DEC);
+        }
+        if(ps2x.Button(PSB_PAD_LEFT)){
+            Serial.print("LEFT held this hard: ");
+            Serial.println(ps2x.Analog(PSAB_PAD_LEFT), DEC);
+        }
+        if(ps2x.Button(PSB_PAD_DOWN)){
+            Serial.print("DOWN held this hard: ");
+            Serial.println(ps2x.Analog(PSAB_PAD_DOWN), DEC);
+        }   
+
+        vibrate = ps2x.Analog(PSAB_CROSS);  //this will set the large motor vibrate speed based on how hard you press the blue (X) button
+        if (ps2x.NewButtonState()) {        //will be TRUE if any button changes state (on to off, or off to on)
+            if(ps2x.Button(PSB_L3))
+                Serial.println("L3 pressed");
+            if(ps2x.Button(PSB_R3))
+                Serial.println("R3 pressed");
+            if(ps2x.Button(PSB_L2))
+                Serial.println("L2 pressed");
+            if(ps2x.Button(PSB_R2))
+                Serial.println("R2 pressed");
+            if(ps2x.Button(PSB_TRIANGLE))
+                Serial.println("Triangle pressed");        
+        }
+
+        if(ps2x.ButtonPressed(PSB_CIRCLE))               //will be TRUE if button was JUST pressed
+            Serial.println("Circle just pressed");
+        if(ps2x.NewButtonState(PSB_CROSS))               //will be TRUE if button was JUST pressed OR released
+            Serial.println("X just changed");
+        if(ps2x.ButtonReleased(PSB_SQUARE))              //will be TRUE if button was JUST released
+            Serial.println("Square just released");     
+
+            Serial.print("Stick Values:");
+            Serial.print(ps2x.Analog(PSS_LY), DEC); //Left stick, Y axis. Other options: LX, RY, RX  
+            Serial.print(",");
+            Serial.print(ps2x.Analog(PSS_LX), DEC); 
+            Serial.print(",");
+            Serial.print(ps2x.Analog(PSS_RY), DEC); 
+            Serial.print(",");
+            Serial.println(ps2x.Analog(PSS_RX), DEC); 
+    }
+    delay(50);  
+}

@@ -11,7 +11,11 @@ void cobject::add_object(cobject* object)
         temp_queue[i] = m_queue_of_commands[i];
     }
     temp_queue[m_length] = object; 
+
+    auto remove_queue = m_queue_of_commands;
     m_queue_of_commands = temp_queue;
+    delete[] remove_queue;
+
     ++m_length;
 }
 
@@ -22,7 +26,11 @@ void cobject::execute() const
         object->execute();
 
         if (object->is_completed()) {
-            ++m_counter;
+            if (object->is_successful()) {
+                ++m_counter;
+            } else {
+                m_counter = m_length;
+            }
         }
     }
 }

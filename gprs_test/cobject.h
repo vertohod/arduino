@@ -3,7 +3,7 @@
 
 class cobject
 {
-private:
+public:
     mutable unsigned int    m_counter;
     unsigned int            m_length;
     cobject**               m_queue_of_commands;

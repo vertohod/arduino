@@ -4,11 +4,11 @@
 #include "cobject.h"
 
 template <class REQUEST, class RESPONSE, class TIMEOUT>
-class cobject_ext : protected cobject
+class cobject_ext : public cobject
 {
 private:
-    bool            m_request_done;
-    bool            m_response_gotten;
+    mutable bool    m_request_done;
+    mutable bool    m_response_gotten;
     char*           m_command;
     char*           m_answer;
     unsigned int    m_timeout;
@@ -38,16 +38,16 @@ public:
     virtual void execute() const override
     {
         if (!m_request_done) {
-            REQUEST(m_command);
+            REQUEST()(m_command);
             m_request_done = true;
         } else {
-            m_response_gotten = RESPONSE(m_answer);
+            m_response_gotten = RESPONSE()(m_answer);
         }
     }
 
     virtual bool is_completed() const override
     {
-        return TIMEOUT(m_timeout) || m_response_gotten;
+        return TIMEOUT()(m_timeout) || m_response_gotten;
     }
 
     virtual bool is_successful() const override

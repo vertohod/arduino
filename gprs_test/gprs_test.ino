@@ -28,6 +28,7 @@ public:
             char ch = gsmModem.read();
             Serial.write(ch);
         }
+        return false;
     }
 };
 
@@ -64,7 +65,7 @@ void setup()
     CREATE_OBJECT(main_object, "AT", "OK", 1000)
     CREATE_OBJECT(main_object, "AT", "OK", 1000)
 
-    delay(2000);
+    delay(1000);
     Serial.println("Ready");
 }
 
@@ -77,5 +78,11 @@ void loop()
     } else if (!flag_print_finish) {
         Serial.println("Finish");
         flag_print_finish = true;
+
+        main_object->clean();
+        delete main_object;
+        main_object = nullptr;
+
+        Serial.println("The main object is cleaned");
     }
 }

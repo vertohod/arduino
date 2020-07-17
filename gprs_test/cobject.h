@@ -3,7 +3,7 @@
 
 class cobject
 {
-public:
+private:
     mutable unsigned int    m_counter;
     unsigned int            m_length;
     cobject**               m_queue_of_commands;
@@ -15,6 +15,8 @@ public:
     virtual void execute() const;
     virtual bool is_completed() const;
     virtual bool is_successful() const;
+
+    void clean();
 };
 
 #endif

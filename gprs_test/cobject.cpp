@@ -44,3 +44,14 @@ bool cobject::is_successful() const
 {
     return true;
 }
+
+void cobject::clean()
+{
+    for (unsigned int i = 0; i < m_length; ++i) {
+        m_queue_of_commands[i]->clean();
+        delete m_queue_of_commands[i];
+    }
+    m_length = 0;
+
+    delete[] m_queue_of_commands;
+}

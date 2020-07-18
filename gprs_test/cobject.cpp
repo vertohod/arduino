@@ -1,29 +1,17 @@
 #include "cobject.h"
 
-cobject::cobject() : m_counter(0), m_length(0), m_queue_of_commands(nullptr)
+cobject::cobject() : m_counter(0)
 {
 }
 
 void cobject::add_object(cobject* object)
 {
-    cobject** temp_queue = new cobject*[m_length + 1];
-    for (unsigned int i = 0; i < m_length; ++i) {
-        temp_queue[i] = m_queue_of_commands[i];
-    }
-    temp_queue[m_length] = object; 
-
-    if (m_queue_of_commands) {
-        auto remove_queue = m_queue_of_commands;
-        delete[] remove_queue;
-    }
-
-    m_queue_of_commands = temp_queue;
-    ++m_length;
+    m_queue_of_commands.push_back(object);
 }
 
 void cobject::execute() const
 {
-    if (m_counter < m_length) {
+    if (m_counter < m_queue_of_commands.size()) {
         auto object = m_queue_of_commands[m_counter];
         object->execute();
 
@@ -31,7 +19,7 @@ void cobject::execute() const
             if (object->is_successful()) {
                 ++m_counter;
             } else {
-                m_counter = m_length;
+                m_counter = m_queue_of_commands.size();
             }
         }
     }
@@ -39,7 +27,7 @@ void cobject::execute() const
 
 bool cobject::is_completed() const
 {
-    return m_counter == m_length;
+    return m_counter == m_queue_of_commands.size();
 }
 
 bool cobject::is_successful() const
@@ -49,11 +37,10 @@ bool cobject::is_successful() const
 
 void cobject::clean()
 {
-    for (unsigned int i = 0; i < m_length; ++i) {
+    auto size = m_queue_of_commands.size();
+    for (unsigned int i = 0; i < size; ++i) {
         m_queue_of_commands[i]->clean();
         delete m_queue_of_commands[i];
     }
-    m_length = 0;
-
-    delete[] m_queue_of_commands;
+    m_queue_of_commands.erase();
 }

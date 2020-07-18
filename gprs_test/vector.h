@@ -14,7 +14,7 @@ private:
     TYPE*           m_store;
 
 private:
-    void allocate()
+    inline void allocate()
     {
         m_store_size = BEGIN_STORE_SIZE;
         m_store = new TYPE[BEGIN_STORE_SIZE];
@@ -37,7 +37,8 @@ private:
 public:
     vector() : m_size(0)
     {
-        allocate();
+        m_store_size = BEGIN_STORE_SIZE;
+        m_store = new TYPE[BEGIN_STORE_SIZE];
     }
 
     ~vector()

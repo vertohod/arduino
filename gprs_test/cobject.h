@@ -1,12 +1,13 @@
 #ifndef COBJECT_H
 #define COBJECT_H
 
+#include "vector.h"
+
 class cobject
 {
 private:
+    vector<cobject*>        m_queue_of_commands;
     mutable unsigned int    m_counter;
-    unsigned int            m_length;
-    cobject**               m_queue_of_commands;
 
 public:
     cobject();

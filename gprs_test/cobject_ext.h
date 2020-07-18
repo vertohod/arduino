@@ -48,9 +48,9 @@ public:
             REQUEST()(m_command);
         } else {
             auto size = RESPONSE()(response_buffer);
-            auto string_length = get_string_length(m_answer);
 
             if (size > 0) {
+                auto string_length = get_string_length(m_answer);
                 m_response_gotten = find(response_buffer, response_buffer.size(), m_answer, string_length);
             }
         }

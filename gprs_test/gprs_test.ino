@@ -32,11 +32,13 @@ public:
 
         while (gsmModem.available()) {
             char ch = gsmModem.read();
-            Serial.write(ch);
+
+            Serial.print(ch);
+            Serial.flush();
+
             buffer.push_back(ch);
             ++counter;
         }
-
         return counter;
     }
 };
@@ -74,7 +76,7 @@ void setup()
     CREATE_OBJECT(main_object, "AT", "OK", 1000)
     CREATE_OBJECT(main_object, "AT", "OK", 1000)
 
-    delay(1000);
+    delay(500);
     Serial.println("Ready");
 }
 

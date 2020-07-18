@@ -32,7 +32,7 @@ bool cobject::is_completed() const
 
 bool cobject::is_successful() const
 {
-    return true;
+    return m_counter == m_queue_of_commands.size();
 }
 
 void cobject::clean()
@@ -43,4 +43,5 @@ void cobject::clean()
         delete m_queue_of_commands[i];
     }
     m_queue_of_commands.erase();
+    m_counter = 0;
 }

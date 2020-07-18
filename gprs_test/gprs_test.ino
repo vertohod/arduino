@@ -77,16 +77,28 @@ public:
     }
 };
 
+void init_commands()
+{
+    main_object = new cobject();
+    CREATE_OBJECT5(main_object, "AT", "OK", 1000, true, 10)
+    CREATE_OBJECT(main_object, "ATE0", "OK", 1000)
+}
+
+void free_commands()
+{
+    main_object->clean();
+    delete main_object;
+    main_object = nullptr;
+}
+
 void setup()
 {
     Serial.begin(9600);
     gsmModem.begin(9600);
 
-    main_object = new cobject();
-    CREATE_OBJECT5(main_object, "AT", "OK", 1000, true, 10)
-    CREATE_OBJECT(main_object, "AT", "OK", 1000)
+    init_commands();
 
-    delay(500);
+    delay(1000);
     Serial.println("Ready");
 }
 
@@ -99,11 +111,7 @@ void loop()
     } else if (!flag_print_finish) {
         Serial.println("Finish");
         flag_print_finish = true;
-
-        main_object->clean();
-        delete main_object;
-        main_object = nullptr;
-
+        free_commands();
         Serial.println("The main object is cleaned");
     }
 }

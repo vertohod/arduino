@@ -1,7 +1,9 @@
 #ifndef COBJECT_EXT_H
 #define COBJECT_EXT_H
 
+#include "vector.h"
 #include "cobject.h"
+#include "functions.h"
 
 template <class REQUEST, class RESPONSE, class TIMEOUT>
 class cobject_ext : public cobject
@@ -37,11 +39,20 @@ public:
 
     virtual void execute() const override
     {
+        static vector<char> response_buffer;
+
         if (!m_request_done) {
-            REQUEST()(m_command);
+            response_buffer.erase();
             m_request_done = true;
+
+            REQUEST()(m_command);
         } else {
-            m_response_gotten = RESPONSE()(m_answer);
+            auto size = RESPONSE()(response_buffer);
+            auto string_length = get_string_length(m_answer);
+
+            if (size > 0) {
+                m_response_gotten = find(response_buffer, response_buffer.size(), m_answer, string_length);
+            }
         }
     }
 

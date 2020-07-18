@@ -1,3 +1,4 @@
+#include "vector.h"
 #include "cobject.h"
 #include "cobject_ext.h"
 #include <SoftwareSerial.h>
@@ -6,8 +7,10 @@ SoftwareSerial gsmModem(6, 7); // RX, TX
 
 cobject* main_object = nullptr;
 
+typedef vector<char> type_buffer;
+
 #define CREATE_OBJECT(OBJ, ARG1, ARG2, ARG3) { \
-    auto temp_object = new cobject_ext<request, response, timeout>(ARG1, ARG2, ARG3); \
+    auto temp_object = new cobject_ext<request, response<type_buffer>, timeout>(ARG1, ARG2, ARG3); \
     OBJ->add_object(temp_object); }
 
 class request
@@ -19,16 +22,22 @@ public:
     }
 };
 
+template <class BUFFER>
 class response
 {
 public:
-    bool operator()(char* const arg)
+    unsigned int operator()(BUFFER& buffer)
     {
-        if (gsmModem.available()) {
+        unsigned int counter = 0;
+
+        while (gsmModem.available()) {
             char ch = gsmModem.read();
             Serial.write(ch);
+            buffer.push_back(ch);
+            ++counter;
         }
-        return false;
+
+        return counter;
     }
 };
 

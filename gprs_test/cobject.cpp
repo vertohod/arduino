@@ -12,10 +12,12 @@ void cobject::add_object(cobject* object)
     }
     temp_queue[m_length] = object; 
 
-    auto remove_queue = m_queue_of_commands;
-    m_queue_of_commands = temp_queue;
-    delete[] remove_queue;
+    if (m_queue_of_commands) {
+        auto remove_queue = m_queue_of_commands;
+        delete[] remove_queue;
+    }
 
+    m_queue_of_commands = temp_queue;
     ++m_length;
 }
 

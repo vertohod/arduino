@@ -39,7 +39,7 @@ public:
 
     virtual void execute() const override
     {
-        static vector<char> response_buffer;
+        typename RESPONSE::type_buffer response_buffer;
 
         if (!m_request_done) {
             response_buffer.erase();

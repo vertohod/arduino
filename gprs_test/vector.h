@@ -1,10 +1,11 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
-#define BEGIN_STORE_SIZE 8
-#define INCREASE_STORE_SIZE 1.4 
+#define FIRST_CAPACITY 4
+#define DEFAULT_CAPACITY 0
+#define INCREASE_STORE_SIZE 1.5
 
-template <class TYPE>
+template <class TYPE, unsigned int CAPACITY = DEFAULT_CAPACITY>
 class vector
 {
 private:
@@ -16,19 +17,25 @@ private:
 private:
     inline void allocate()
     {
-        m_store_size = BEGIN_STORE_SIZE;
-        m_store = new TYPE[BEGIN_STORE_SIZE];
+        m_store_size = CAPACITY;
+        if (m_store_size  > 0) {
+            m_store = new TYPE[CAPACITY];
+        }
     }
 
     void reallocate()
     {
+        auto new_store_size = m_store_size * INCREASE_STORE_SIZE;
+        if (new_store_size == 0) new_store_size = FIRST_CAPACITY;
+
         auto store_temp = m_store;
-        m_store = new TYPE[m_store_size * INCREASE_STORE_SIZE];
+        m_store = new TYPE[new_store_size];
+        m_store_size = new_store_size;
+
         for (unsigned int i = 0; i < m_size; ++i) {
             m_store[i] = store_temp[i];
         }
         delete[] store_temp;
-        m_store_size *= INCREASE_STORE_SIZE;
     }
 
     vector(const vector&);
@@ -37,8 +44,8 @@ private:
 public:
     vector() : m_size(0)
     {
-        m_store_size = BEGIN_STORE_SIZE;
-        m_store = new TYPE[BEGIN_STORE_SIZE];
+        m_store_size = CAPACITY;
+        m_store = new TYPE[CAPACITY];
     }
 
     ~vector()
@@ -72,7 +79,7 @@ public:
     void erase()
     {
         m_size = 0;
-        if (m_store_size != BEGIN_STORE_SIZE) {
+        if (m_store_size != CAPACITY) {
             delete[] m_store;
             allocate();
         }

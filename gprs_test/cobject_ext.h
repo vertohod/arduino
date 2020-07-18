@@ -5,15 +5,16 @@
 #include "cobject.h"
 #include "functions.h"
 
-template <class REQUEST, class RESPONSE, class TIMEOUT>
+template <class REQUEST, class RESPONSE, class TIMEOUT, bool REPEAT = false, unsigned char AMOUNT = 2>
 class cobject_ext : public cobject
 {
 private:
-    mutable bool    m_request_done;
-    mutable bool    m_response_gotten;
-    char*           m_command;
-    char*           m_answer;
-    unsigned int    m_timeout;
+    mutable bool            m_request_done;
+    mutable bool            m_response_gotten;
+    char*                   m_command;
+    char*                   m_answer;
+    unsigned int            m_timeout;
+    mutable unsigned int    m_amount;
 
 public:
     cobject_ext() :
@@ -21,7 +22,9 @@ public:
         m_response_gotten(false),
         m_command(nullptr),
         m_answer(nullptr),
-        m_timeout(0) {}
+        m_timeout(0),
+        m_amount(0)
+    {}
 
     cobject_ext(char* command, char* answer, unsigned int timeout) :
         m_request_done(false),
@@ -58,7 +61,22 @@ public:
 
     virtual bool is_completed() const override
     {
-        return TIMEOUT()(m_timeout) || m_response_gotten;
+        if (m_response_gotten) {
+            return true;
+        } else if (TIMEOUT()(m_timeout)) {
+            if (REPEAT) {
+                if (m_amount < AMOUNT) {
+                    ++m_amount;
+                    return false;
+                } else {
+                    return true;
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
     virtual bool is_successful() const override

@@ -13,12 +13,21 @@ typedef vector<char, 8> response_type_buffer;
     auto temp_object = new cobject_ext<request, response<response_type_buffer>, timeout>(ARG1, ARG2, ARG3); \
     OBJ->add_object(temp_object); }
 
+#define CREATE_OBJECT4(OBJ, ARG1, ARG2, ARG3, ARG4) { \
+    auto temp_object = new cobject_ext<request, response<response_type_buffer>, timeout, ARG4>(ARG1, ARG2, ARG3); \
+    OBJ->add_object(temp_object); }
+
+#define CREATE_OBJECT5(OBJ, ARG1, ARG2, ARG3, ARG4, ARG5) { \
+    auto temp_object = new cobject_ext<request, response<response_type_buffer>, timeout, ARG4, ARG5>(ARG1, ARG2, ARG3); \
+    OBJ->add_object(temp_object); }
+
 class request
 {
 public:
     void operator()(char* const arg)
     {
         gsmModem.println(arg);
+        Serial.println(arg);
     }
 };
 
@@ -74,9 +83,7 @@ void setup()
     gsmModem.begin(9600);
 
     main_object = new cobject();
-    CREATE_OBJECT(main_object, "AT", "OK", 1000)
-    CREATE_OBJECT(main_object, "AT", "OK", 1000)
-    CREATE_OBJECT(main_object, "AT", "OK", 1000)
+    CREATE_OBJECT5(main_object, "AT", "OK", 1000, true, 10)
     CREATE_OBJECT(main_object, "AT", "OK", 1000)
 
     delay(500);

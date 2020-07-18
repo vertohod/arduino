@@ -4,6 +4,10 @@ cobject::cobject() : m_counter(0)
 {
 }
 
+cobject::~cobject()
+{
+}
+
 void cobject::add_object(cobject* object)
 {
     m_queue_of_commands.push_back(object);

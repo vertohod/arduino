@@ -44,18 +44,17 @@ public:
     {
         typename RESPONSE::type_buffer response_buffer;
 
-        if (!m_request_done) {
-            response_buffer.erase();
-            m_request_done = true;
+        auto size = RESPONSE()(response_buffer, m_answer); // read everything in any case
 
-            REQUEST()(m_command);
-        } else {
-            auto size = RESPONSE()(response_buffer);
-
+        if (m_request_done) {
             if (size > 0) {
                 auto string_length = get_string_length(m_answer);
                 m_response_gotten = find(response_buffer, response_buffer.size(), m_answer, string_length);
             }
+        } else {
+            response_buffer.erase();
+            m_request_done = true;
+            REQUEST()(m_command);
         }
     }
 
@@ -66,13 +65,14 @@ public:
         } else if (TIMEOUT()(m_timeout)) {
             if (REPEAT) {
                 if (m_amount < AMOUNT) {
+                    m_request_done = false;
                     ++m_amount;
                     return false;
                 } else {
                     return true;
                 }
             } else {
-                return false;
+                return true;
             }
         } else {
             return false;

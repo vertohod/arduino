@@ -11,6 +11,7 @@ private:
 
 public:
     cobject();
+    virtual ~cobject();
 
     void add_object(cobject*);
     virtual void execute() const;

@@ -93,13 +93,11 @@ public:
 void init_commands()
 {
     main_object = new cobject();
-    CREATE_OBJECT5(main_object, "AT", "OK", 1000, true, 10)
+    CREATE_OBJECT5(main_object, "AT", "OK", 1000, true, 50)
     CREATE_OBJECT(main_object, "ATE0", "OK", 1000)
     CREATE_OBJECT(main_object, "AT+CMEE=2", "OK", 1000)     // make more information of error
-
     auto sim_connect = new cobject();
     main_object->add_object(sim_connect);
-
     CREATE_OBJECT(sim_connect, "AT+CPIN=?", "OK", 1000)     // check command
     CREATE_OBJECT(sim_connect, "AT+CPIN?", "READY", 1000)   // check a sim card
     CREATE_OBJECT(sim_connect, "AT+CREG=?", "+CREG", 1000)  // list of value for registration in network
@@ -107,15 +105,19 @@ void init_commands()
     CREATE_OBJECT(sim_connect, "AT+CREG?", "+CREG", 1000)   // check registration
     CREATE_OBJECT(sim_connect, "AT+CSQ=?", "+CSQ", 1000)    // check signal's quality: +CSQ: (0-31,99),(0-7,99)
     CREATE_OBJECT(sim_connect, "AT+CSQ", "OK", 1000)        // check signal's quality: +CSQ: 13, 99
-    CREATE_OBJECT(sim_connect, "AT+CGATT=1", "OK", 5000)    // attach to network
-    CREATE_OBJECT(sim_connect, "AT+CGATT?", "+CGATT:1", 5000)           // check is it attached
-    CREATE_OBJECT(sim_connect, "AT+CGACT=1", "OK", 5000)    // activate PDP context
-    CREATE_OBJECT4(sim_connect, "AT+CGACT?", "+CGACT", 5000, true)      // check is it activated
-    CREATE_OBJECT(sim_connect, "AT+CGDCONT=1,\"IP\",\"web.vodafone.de\"","OK", 5000)    // define PDP context
-    CREATE_OBJECT5(sim_connect, "AT+CGDCONT?","+CGDCONT:1", 5000, true, 5)              // check is it defined
-
-    CREATE_OBJECT(sim_connect, "AT+CGACT=0", "OK", 1000)    // deactivate PDP context
-    CREATE_OBJECT(sim_connect, "AT+CGATT=0", "OK", 1000)    // dettach from network
+    auto gprs_connect = new cobject();
+    sim_connect->add_object(gprs_connect);
+    CREATE_OBJECT(gprs_connect, "AT+CGATT=1", "OK", 5000)   // attach to network
+    CREATE_OBJECT5(gprs_connect, "AT+CGATT?", "+CGATT:1", 5000, true, 10)   // check is it attached
+    CREATE_OBJECT(gprs_connect, "AT+CGACT=?", "OK", 5000)  // check supported PDP context
+    CREATE_OBJECT(gprs_connect, "AT+CGACT=1", "OK", 5000)   // activate PDP context
+    CREATE_OBJECT5(gprs_connect, "AT+CGACT?", "+CGACT: 1", 5000, true, 10)  // check is it activated
+    CREATE_OBJECT(gprs_connect, "AT+CGDCONT=1,\"IP\",\"web.vodafone.de\"","OK", 5000)    // define PDP context
+    CREATE_OBJECT5(gprs_connect, "AT+CGDCONT?","OK", 5000, true, 5)         // check is it defined
+    auto http_connect = new cobject();
+    gprs_connect->add_object(http_connect);
+    CREATE_OBJECT(gprs_connect, "AT+CGACT=0", "OK", 5000)    // deactivate PDP context
+    CREATE_OBJECT(gprs_connect, "AT+CGATT=0", "OK", 5000)    // dettach from network
 }
 
 void free_commands()
@@ -132,7 +134,7 @@ void setup()
 
     init_commands();
 
-    delay(1000);
+    delay(5000);
     Serial.println("Ready");
 }
 

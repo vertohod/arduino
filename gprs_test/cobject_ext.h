@@ -31,7 +31,9 @@ public:
         m_response_gotten(false),
         m_command(command),
         m_answer(answer),
-        m_timeout(timeout) {}
+        m_timeout(timeout),
+        m_amount(0)
+    {}
 
     init(char* command, char* answer, unsigned int timeout)
     {

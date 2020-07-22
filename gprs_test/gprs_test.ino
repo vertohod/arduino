@@ -103,23 +103,27 @@ void init_commands()
     CREATE_OBJECT(sim_connect, "AT+CREG=?", "+CREG", 1000)  // list of value for registration in network
     CREATE_OBJECT(sim_connect, "AT+CREG=2", "OK", 1000)     // registration in network
     CREATE_OBJECT(sim_connect, "AT+CREG?", "+CREG", 1000)   // check registration
+    CREATE_OBJECT(sim_connect, "AT+COPS=?", "OK", 60000)    // request of available operators
+    CREATE_OBJECT(sim_connect, "AT+COPS=0", "OK", 5000)     // select operator automatically
+    CREATE_OBJECT(sim_connect, "AT+COPS?", "+COPS", 1000)   // check of selected operator
     CREATE_OBJECT(sim_connect, "AT+CSQ=?", "+CSQ", 1000)    // check signal's quality: +CSQ: (0-31,99),(0-7,99)
     CREATE_OBJECT(sim_connect, "AT+CSQ", "OK", 1000)        // check signal's quality: +CSQ: 13, 99
     auto attach_network = new cobject();
     sim_connect->add_object(attach_network);
     CREATE_OBJECT(attach_network, "AT+CGATT=1", "OK", 5000) // attach to network
-    CREATE_OBJECT5(attach_network, "AT+CGATT?", "+CGATT:1", 5000, true, 10)   // check is it attached
+    CREATE_OBJECT5(attach_network, "AT+CGATT?", "+CGATT:1", 5000, true, 10)     // check is it attached
+    auto define_context = new cobject();
+    attach_network->add_object(define_context);
+    CREATE_OBJECT(define_context, "AT+CGDCONT=1,\"IP\",\"web.vodafone.de\"","OK", 5000)     // define PDP context
+    CREATE_OBJECT5(define_context, "AT+CGDCONT?","OK", 1000, true, 5)           // check is it defined
+    CREATE_OBJECT(define_context, "AT+CSQ", "OK", 1000)     // check signal's quality again
     auto activate_pdp = new cobject();
-    attach_network->add_object(activate_pdp);
+    define_context->add_object(activate_pdp);
     CREATE_OBJECT(activate_pdp, "AT+CGACT=?", "OK", 5000)   // check supported PDP context
     CREATE_OBJECT(activate_pdp, "AT+CGACT=1", "OK", 5000)   // activate PDP context
-    CREATE_OBJECT5(activate_pdp, "AT+CGACT?", "+CGACT: 1", 5000, true, 10)  // check is it activated
-    auto define_context = new cobject();
-    activate_pdp->add_object(define_context);
-    CREATE_OBJECT(define_context, "AT+CGDCONT=1,\"IP\",\"web.vodafone.de\"","OK", 5000)    // define PDP context
-    CREATE_OBJECT5(define_context, "AT+CGDCONT?","OK", 5000, true, 5)       // check is it defined
-    auto http_connect = new cobject();
-    define_context->add_object(http_connect);
+    CREATE_OBJECT5(activate_pdp, "AT+CGACT?", "+CGACT: 1", 5000, true, 10)      // check is it activated
+    auto server_connect = new cobject();
+    activate_pdp->add_object(server_connect);
     CREATE_OBJECT(activate_pdp, "AT+CGACT=0", "OK", 5000)   // deactivate PDP context
     CREATE_OBJECT(attach_network, "AT+CGATT=0", "OK", 5000) // dettach from network
 }

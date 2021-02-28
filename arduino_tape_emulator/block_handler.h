@@ -55,16 +55,21 @@ private:
     volatile size_t m_duration;
 
 public:
+    static byte** init_buffer(size_t buffer_size)
+    {
+        byte** result;
+        result = new byte*;
+        *result = new byte[buffer_size];
+        return result;
+    }
+
     block_handler(size_t buffer_size) :
         m_buffer_size(buffer_size),
         m_length_in(0),
         m_stage(STAGE::BEGIN)
     {
-        m_buffer_in = new byte*;
-        m_buffer_out = new byte*;
-
-        *m_buffer_in = new byte[m_buffer_size];
-        *m_buffer_out = new byte[m_buffer_size];
+        m_buffer_in = init_buffer(buffer_size);
+        m_buffer_out = init_buffer(buffer_size);
     }
 
     ~block_handler()

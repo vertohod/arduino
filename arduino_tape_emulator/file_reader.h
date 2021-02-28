@@ -1,6 +1,11 @@
 #ifndef FILE_READER_H
 #define FILE_READER_H
 
+#include <SPI.h>
+#include <SD.h>
+
+#define SDPIN 8
+
 class file_reader
 {
 private:
@@ -23,6 +28,9 @@ public:
         m_block_read(0),
         m_state(STATE::READING)
     {
+        if (!SD.begin(SDPIN)) {
+            while (1);
+        }
         m_file = SD.open(file_name);
         // TODO
         // if (!m_file) throw "File can not be opend";

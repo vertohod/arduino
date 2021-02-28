@@ -16,7 +16,6 @@
 
 #define DURATION_PILOT_HEADER    5 // seconds
 #define DURATION_PILOT_DATA      2 // seconds
-#define DURATION_PAUSE           1 // seconds
 
 class block_handler
 {
@@ -27,14 +26,6 @@ private:
     volatile byte **m_buffer_out;
     volatile size_t m_length_out;
 
-public:
-    enum BLOCK_TYPE
-    {
-        HEADER,
-        DATA
-    };
-
-private:
     enum STAGE
     {
         BEGIN,
@@ -53,6 +44,7 @@ private:
     bool m_meander_up;
     size_t m_period;
     volatile size_t m_duration;
+    bool m_request_switch;
 
 public:
     static byte** init_buffer(size_t buffer_size)
@@ -101,6 +93,9 @@ private:
         m_index_bit = 0;
         m_current_bit_one = true;
         m_meander_up = true;
+        m_period = 0;
+        m_duration = 0;
+        m_request_switch = false;
     }
 
     bool move_data()
@@ -117,13 +112,13 @@ private:
     }
 
 public:
-    void start(BLOCK_TYPE type)
+    void start(byte type)
     {
-        if (m_stage == STAGE::BEGIN) return;
+        if (m_stage != STAGE::BEGIN) return;
         if (!move_data()) return;
 
         m_stage = STAGE::PILOT;
-        m_duration = (type == BLOCK_TYPE::HEADER ? DURATION_PILOT_HEADER : DURATION_PILOT_DATA);
+        m_duration = (0 == type ? DURATION_PILOT_HEADER : DURATION_PILOT_DATA);
     }
 
     void stop()
@@ -148,7 +143,10 @@ public:
                 return false;
             case STAGE::PILOT:
                 m_period = m_meander_up ? PILOT_SGN_UP : PILOT_SGN_DN;
-                if (!m_meander_up && m_duration == 0) m_stage = STAGE::SYNC;
+                if (!m_meander_up && m_request_switch) {
+                    m_stage = STAGE::SYNC;
+                    m_request_switch = false;
+                }
                 m_meander_up = !m_meander_up;
                 return !m_meander_up;
             case STAGE::SYNC:
@@ -157,6 +155,7 @@ public:
                 m_meander_up = !m_meander_up;
                 return !m_meander_up;
             case STAGE::BUFFER:
+                if (m_request_switch) m_stage = STAGE::END;
                 if (m_meander_up) {
                     if (m_length_out == 0) {
                         if (m_length_in == 0) {
@@ -187,13 +186,10 @@ public:
     {
         switch (m_stage) {
             case STAGE::PILOT:
-                m_stage = STAGE::SYNC;
-                break;
-            case STAGE::SYNC:
-                m_stage = STAGE::BUFFER;
+                m_request_switch = true;
                 break;
             case STAGE::BUFFER:
-                m_stage = STAGE::END;
+                m_request_switch = true;
                 break;
             default:
                 break;
@@ -208,12 +204,9 @@ public:
 
     size_t get_duration()
     {
-        return m_duration;
-    }
-
-    void unset_duration()
-    {
+        auto result = m_duration;
         m_duration = 0;
+        return result;
     }
 
     bool is_finished()

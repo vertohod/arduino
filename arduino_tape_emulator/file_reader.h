@@ -73,6 +73,10 @@ public:
     {
         m_state;
     }
+    bool is_pause()
+    {
+        return STATE::PAUSE == m_state;
+    }
     void read_continue()
     {
         m_state = STATE::READING;

@@ -11,8 +11,8 @@ file_reader *reader = nullptr;
 
 byte** buffer = block_handler::init_buffer(BUFFER_SIZE);
 bool next_level = false;
-bool next_period = 0;
-bool next_duration = 0;
+double  next_period = 0.0;
+double next_duration = 0.0;
 
 void setup()
 {
@@ -55,12 +55,10 @@ template<>
 void timer<1>::handler()
 {
     digitalWrite(OUTPUTPIN, next_level ? HIGH : LOW);
-    if (0 != next_period) {
+    if (0.0 != next_period) {
         timer1->set(next_period);
-    } else {
-        timer1->stop();
     }
-    if (0 != next_duration) {
+    if (0.0 != next_duration) {
         timer2->set(next_duration);
     }
     next_level = bh->get_level();
@@ -72,5 +70,4 @@ template<>
 void timer<2>::handler()
 {
     bh->switch_next();
-    timer2->stop();
 }

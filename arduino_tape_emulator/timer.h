@@ -4,9 +4,14 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+#define TIMER_FRQ_Mhz 16.0
+
 template <int>
 class timer
 {
+private:
+    byte m_TCCRnB;
+
 public:
     timer();
 
@@ -16,47 +21,83 @@ public:
         timer::handler();
     } 
 
-    void set(size_t duration)
+    void set(double duration)
     {
-        // TODO
     }
     void set_min()
     {
-        // TODO
+        set(0.5);
     }
     void stop()
     {
-        // TODO
     }
 };
 
 template<>
 timer<1>::timer()
 {
+    m_TCCRnB = 1 << WGM12;
+
     cli();
     TCCR1A = 0;
-    TCCR1B = 1 << WGM12 | 1 << CS10;
+    TCCR1B = m_TCCRnB;
     TIMSK1 = 1 << OCIE1A;
     sei();
+}
+template<>
+void timer<1>::set(double duration)
+{
+    // TODO count factor depends of duration
+
+    OCR1A = static_cast<size_t>(duration * 1000000 * TIMER_FRQ_Mhz / 2 - 1);
+    TCCR1B = m_TCCRnB | 1 << CS10;
+}
+template<>
+void timer<1>::stop()
+{
+    // Turn-off timer
+    TCCR1B = 1 << WGM12;
 }
 
 template<>
 timer<2>::timer()
 {
+    m_TCCRnB = 1 << WGM22;
+
     cli();
     TCCR2A = 0;
-    TCCR2B = 1 << WGM22 | 1 << CS20;
+    TCCR2B = m_TCCRnB;
     TIMSK2 = 1 << OCIE2A;
     sei();
+}
+template<>
+void timer<2>::set(double duration)
+{
+    // TODO count factor depends of duration
+
+    OCR2A = static_cast<size_t>(duration * 1000000 * TIMER_FRQ_Mhz / 2 - 1);
+    TCCR2B = m_TCCRnB | 1 << CS20;
+}
+template<>
+void timer<2>::stop()
+{
+    // Turn-off timer
+    TCCR2B = 1 << WGM22;
 }
 
 ISR(TIMER1_COMPA_vect)
 {
+    // Turn-off timer
+    TCCR1B = 1 << WGM12;
+
     timer<1>::f();
 }
 
 ISR(TIMER2_COMPA_vect)
 {
+    // Turn-off timer
+    TCCR2B = 1 << WGM22;
+
     timer<2>::f();
 }
 

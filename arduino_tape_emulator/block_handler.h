@@ -11,11 +11,10 @@
 #define LG0_SGN_UP      855
 #define LG0_SGN_DN      855
 
-#define TIMER_FRQ_Mhz   16.0
-#define Z80_FRQ_Mhz     3.5
+#define DURATION_PILOT_HEADER    5.0 // seconds
+#define DURATION_PILOT_DATA      2.0 // seconds
 
-#define DURATION_PILOT_HEADER    5 // seconds
-#define DURATION_PILOT_DATA      2 // seconds
+#define Z80_FRQ_Mhz     3.5
 
 class block_handler
 {
@@ -43,7 +42,7 @@ private:
     bool m_current_bit_one;
     bool m_meander_up;
     size_t m_period;
-    volatile size_t m_duration;
+    volatile double m_duration;
     bool m_request_switch;
 
 public:
@@ -94,7 +93,7 @@ private:
         m_current_bit_one = true;
         m_meander_up = true;
         m_period = 0;
-        m_duration = 0;
+        m_duration = 0.0;
         m_request_switch = false;
     }
 
@@ -196,16 +195,15 @@ public:
         }
     }
 
-    size_t get_period()
+    double get_period()
     {
-        static const double factor = TIMER_FRQ_Mhz / Z80_FRQ_Mhz;
-        return m_period * factor;
+        return (static_cast<double>(m_period) / Z80_FRQ_Mhz) / 1000000;
     }
 
-    size_t get_duration()
+    double get_duration()
     {
         auto result = m_duration;
-        m_duration = 0;
+        m_duration = 0.0;
         return result;
     }
 

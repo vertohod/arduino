@@ -54,20 +54,20 @@ void loop()
 template<>
 void timer<1>::handler()
 {
-    digitalWrite(OUTPUTPIN, next_level ? HIGH : LOW);
-    if (0.0 != next_period) {
-        timer1->set(next_period);
-    }
-    if (0.0 != next_duration) {
-        timer2->set(next_duration);
-    }
-    next_level = bh->get_level();
-    next_period = bh->get_period();
-    next_duration = bh->get_duration();
+    bh->switch_next();
 }
 
 template<>
 void timer<2>::handler()
 {
-    bh->switch_next();
+    digitalWrite(OUTPUTPIN, next_level ? HIGH : LOW);
+    if (0.0 != next_period) {
+        timer2->set(next_period);
+    }
+    if (0.0 != next_duration) {
+        timer1->set(next_duration);
+    }
+    next_level = bh->get_level();
+    next_period = bh->get_period();
+    next_duration = bh->get_duration();
 }

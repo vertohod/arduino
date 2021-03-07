@@ -46,12 +46,17 @@ private:
     bool m_request_switch;
 
 public:
-    static byte** init_buffer(size_t buffer_size)
+    static byte** buffer_init(size_t buffer_size)
     {
         byte** result;
         result = new byte*;
         *result = new byte[buffer_size];
         return result;
+    }
+    static void buffer_free(byte** buffer)
+    {
+        delete[] *buffer;
+        delete buffer;
     }
 
     block_handler(size_t buffer_size) :
@@ -59,17 +64,14 @@ public:
         m_length_in(0),
         m_stage(STAGE::BEGIN)
     {
-        m_buffer_in = init_buffer(buffer_size);
-        m_buffer_out = init_buffer(buffer_size);
+        m_buffer_in = buffer_init(buffer_size);
+        m_buffer_out = buffer_init(buffer_size);
     }
 
     ~block_handler()
     {
-        delete[] *m_buffer_in;
-        delete[] *m_buffer_out;
-
-        delete m_buffer_in;
-        delete m_buffer_out;
+        buffer_free(m_buffer_out);
+        buffer_free(m_buffer_in);
     }
 
     bool is_buffer_empty()

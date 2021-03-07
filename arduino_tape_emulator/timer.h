@@ -26,7 +26,7 @@ public:
     }
     void set_min()
     {
-        set(0.5);
+        set(0.0001);
     }
     void stop()
     {
@@ -47,7 +47,7 @@ timer<1>::timer()
 template<>
 void timer<1>::set(double duration)
 {
-    // duration from 0,000128 to 8,388608
+    // duration from 0.000128 to 8.388608
 
     OCR1A = static_cast<size_t>(duration * 1000000 * TIMER_FRQ_Mhz / (2 * 1024) - 1);
     TCCR1B = m_TCCRnB | 1 << CS12 | 1 << CS10;
@@ -74,7 +74,7 @@ timer<2>::timer()
 template<>
 void timer<2>::set(double duration)
 {
-    // duration from 0,000004 to 0,001024
+    // duration from 0.000004 to 0.001024
 
     OCR2A = static_cast<size_t>(duration * 1000000 * TIMER_FRQ_Mhz / (2 * 32) - 1);
     TCCR2B = m_TCCRnB | 1 << CS21 | 1 << CS20;

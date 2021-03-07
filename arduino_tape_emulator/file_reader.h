@@ -16,7 +16,8 @@ private:
 
     enum STATE {
         READING,
-        PAUSE
+        PAUSE,
+        END
     };
 
     STATE m_state;
@@ -41,11 +42,14 @@ public:
     }
     size_t get_data(byte* buffer, size_t buffer_size)
     {
-        if (m_state == STATE::PAUSE) return 0;
+        if (m_state != STATE::READING) return 0;
 
         size_t counter = 0;
         for (; counter < buffer_size; ++counter) {
-            if (!m_file.available()) break; 
+            if (!m_file.available()) {
+                m_state = STATE::END;
+                break; 
+            }
 
             buffer[counter] = m_file.read();
 
@@ -69,17 +73,19 @@ public:
     {
         return m_block_type;
     }
-    STATE get_state()
-    {
-        m_state;
-    }
     bool is_pause()
     {
         return STATE::PAUSE == m_state;
     }
     void read_continue()
     {
-        m_state = STATE::READING;
+        if (is_pause()) {
+            m_state = STATE::READING;
+        }
+    }
+    bool is_finished()
+    {
+        return STATE::END == m_state;
     }
 };
 

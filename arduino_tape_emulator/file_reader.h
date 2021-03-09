@@ -11,8 +11,8 @@ class file_reader
 private:
     File    m_file;
     byte    m_block_type;
-    size_t  m_block_size;
-    size_t  m_block_read;
+    volatile size_t  m_block_size;
+    volatile size_t  m_block_read;
 
     enum STATE {
         READING,
@@ -20,7 +20,7 @@ private:
         END
     };
 
-    STATE m_state;
+    volatile STATE m_state;
 
 public:
     file_reader(char* file_name) :
@@ -40,7 +40,7 @@ public:
     {
         m_file.close();
     }
-    size_t get_data(byte* buffer, size_t buffer_size)
+    size_t get_data(byte *buffer, size_t buffer_size)
     {
         if (m_state != STATE::READING) return 0;
 
@@ -59,15 +59,19 @@ public:
                 if (counter == 2) {
                     m_block_size = buffer[0] | buffer[1] << 8;
                     m_block_type = buffer[2];
+                    // The byte of type should be counted
+                    m_block_read = 1;
 
                     Serial.print("Block type: "); Serial.println(m_block_type);
                     Serial.print("Block size: "); Serial.println(m_block_size);
                 }
-            } else if (++m_block_read == m_block_size) {
-                m_block_size = 0;
-                m_block_read = 0;
-                m_state = STATE::PAUSE;
-                return counter + 1;
+            } else {
+                ++m_block_read;
+
+                if (m_block_read == m_block_size) {
+                    m_state = STATE::PAUSE;
+                    return counter + 1;
+                }
             }
         }
         return counter;
@@ -82,7 +86,9 @@ public:
     }
     void read_continue()
     {
-        if (is_pause()) {
+        if (is_pause() == 1) {
+            m_block_size = 0;
+            m_block_read = 0;
             m_state = STATE::READING;
         }
     }

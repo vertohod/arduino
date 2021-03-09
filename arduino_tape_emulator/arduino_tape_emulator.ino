@@ -11,16 +11,16 @@ timer<1> *timer1 = nullptr;
 timer<2> *timer2 = nullptr;
 file_reader *reader = nullptr;
 
-byte** buffer = block_handler::buffer_init(BUFFER_SIZE);
+byte* buffer = new byte[BUFFER_SIZE];
 byte next_level = 0;
 double  next_period = 0.0;
 double next_duration = 0.0;
 
 void start_reading()
 {
-    auto length = reader->get_data(*buffer, BUFFER_SIZE);
+    auto length = reader->get_data(buffer, BUFFER_SIZE);
     if (length > 0) {
-        bh->fill_buffer(buffer, length);
+        buffer = bh->fill_buffer(buffer, length);
         bh->start(reader->get_block_type());
 
         next_level = bh->get_level();
@@ -45,43 +45,37 @@ void setup()
     DDRD = B00010000;
     timer1 = new timer<1>();
     timer2 = new timer<2>();
-    sei();
     start_reading();
+    sei();
 
     digitalWrite(LED_BUILTIN, LOW);
 }
 
-size_t were_read_bytes = 0;
-
 void loop()
 {
-    if (reader->is_pause() == 1) {
-        Serial.println("Reader is in pause");
-        return;
-    }
+    if (reader->is_pause() == 1) return;
 
     if (bh->is_buffer_empty() == 1) {
-        auto length = reader->get_data(*buffer, BUFFER_SIZE);
-        bh->fill_buffer(buffer, length);
-
-        were_read_bytes += length;
-        Serial.print("Were read "); Serial.print(were_read_bytes); Serial.println(" bytes");
+        auto length = reader->get_data(buffer, BUFFER_SIZE);
+        if (length > 0) {
+            buffer = bh->fill_buffer(buffer, length);
+        }
     }
 }
 
 template<>
 void timer<1>::handler()
 {
-    Serial.println("Timer 1: begin");
+    Serial.println("Timer 1 is working");
 
-    if (reader->is_pause() == 1) {
-        Serial.println("Timer 1: reader is in pause");
+    if (bh->is_pilot() == 1) {
+        Serial.println("Timer 1, pilot turn-off");
+        bh->switch_next();
+    }
+    if (bh->is_finished() == 1 && reader->is_pause() == 1) {
+        Serial.println("Timer 1, continue to read");
         reader->read_continue();
         start_reading();
-    }
-    if (bh->is_pilot() == 1) {
-        Serial.println("Timer 1: block handler is in pause");
-        bh->switch_next();
     }
 }
 
@@ -93,8 +87,11 @@ void timer<2>::handler()
     if (0.0 != next_period) {
         timer2->set(next_period);
     } else {
-        if (reader->is_pause() == 1) {
-            timer1->set(DURATION_PAUSE);
+        if (bh->is_finished() == 1) {
+            if (reader->is_pause() == 1) {
+                timer1->set(DURATION_PAUSE);
+            }
+            return;
         }
     }
     if (0.0 != next_duration) {

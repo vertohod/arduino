@@ -26,7 +26,7 @@ public:
     }
     void set_min()
     {
-        set(0.0001);
+        set(0.001024);
     }
     void stop()
     {
@@ -89,18 +89,20 @@ void timer<2>::stop()
 
 ISR(TIMER1_COMPA_vect)
 {
+    cli();
     // Turn-off timer
     TCCR1B = 1 << WGM12;
-
     timer<1>::f();
+    sei();
 }
 
 ISR(TIMER2_COMPA_vect)
 {
+    cli();
     // Turn-off timer
     TCCR2B = 1 << WGM22;
-
     timer<2>::f();
+    sei();
 }
 
 #endif

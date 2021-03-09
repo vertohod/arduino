@@ -28,7 +28,7 @@ public:
     {
         set(0.001024);
     }
-    void stop()
+    static void stop()
     {
     }
 };
@@ -48,7 +48,6 @@ template<>
 void timer<1>::set(double duration)
 {
     // duration from 0.000128 to 8.388608
-
     OCR1A = static_cast<size_t>(duration * 1000000 * TIMER_FRQ_Mhz / (2 * 1024) - 1);
     TCCR1B = m_TCCRnB | 1 << CS12 | 1 << CS10;
 }
@@ -56,7 +55,6 @@ template<>
 void timer<1>::stop()
 {
     // Turn-off timer
-
     TCCR1B = 1 << WGM12;
 }
 
@@ -75,7 +73,6 @@ template<>
 void timer<2>::set(double duration)
 {
     // duration from 0.000004 to 0.001024
-
     OCR2A = static_cast<size_t>(duration * 1000000 * TIMER_FRQ_Mhz / (2 * 32) - 1);
     TCCR2B = m_TCCRnB | 1 << CS21 | 1 << CS20;
 }
@@ -83,15 +80,13 @@ template<>
 void timer<2>::stop()
 {
     // Turn-off timer
-
     TCCR2B = 1 << WGM22;
 }
 
 ISR(TIMER1_COMPA_vect)
 {
     cli();
-    // Turn-off timer
-    TCCR1B = 1 << WGM12;
+    timer<1>::stop();
     timer<1>::f();
     sei();
 }
@@ -99,8 +94,7 @@ ISR(TIMER1_COMPA_vect)
 ISR(TIMER2_COMPA_vect)
 {
     cli();
-    // Turn-off timer
-    TCCR2B = 1 << WGM22;
+    timer<2>::stop();
     timer<2>::f();
     sei();
 }

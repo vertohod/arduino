@@ -12,7 +12,7 @@ timer<2> *timer2 = nullptr;
 file_reader *reader = nullptr;
 
 byte* buffer = new byte[BUFFER_SIZE];
-byte next_level = 0;
+bool next_level_up = false;
 double  next_period = 0.0;
 double next_duration = 0.0;
 
@@ -23,7 +23,7 @@ void start_reading()
         buffer = bh->fill_buffer(buffer, length);
         bh->start(reader->get_block_type());
 
-        next_level = bh->get_level();
+        next_level_up = bh->get_level();
         next_period = bh->get_period();
         next_duration = bh->get_duration();
 
@@ -53,9 +53,9 @@ void setup()
 
 void loop()
 {
-    if (reader->is_pause() == 1) return;
+    if (reader->is_pause()) return;
 
-    if (bh->is_buffer_empty() == 1) {
+    if (bh->is_buffer_empty()) {
         auto length = reader->get_data(buffer, BUFFER_SIZE);
         if (length > 0) {
             buffer = bh->fill_buffer(buffer, length);
@@ -68,11 +68,11 @@ void timer<1>::handler()
 {
     Serial.println("Timer 1 is working");
 
-    if (bh->is_pilot() == 1) {
-        Serial.println("Timer 1, pilot turn-off");
+    if (bh->is_pilot()) {
+        Serial.println("Timer 1, PILOT switch");
         bh->switch_next();
     }
-    if (bh->is_finished() == 1 && reader->is_pause() == 1) {
+    if (bh->is_finished() && reader->is_pause()) {
         Serial.println("Timer 1, continue to read");
         reader->read_continue();
         start_reading();
@@ -82,13 +82,13 @@ void timer<1>::handler()
 template<>
 void timer<2>::handler()
 {
-    PORTD = next_level ? 0xff : 0;
+    PORTD = next_level_up ? 0xff : 0x00;
 
     if (0.0 != next_period) {
         timer2->set(next_period);
     } else {
-        if (bh->is_finished() == 1) {
-            if (reader->is_pause() == 1) {
+        if (bh->is_finished()) {
+            if (reader->is_pause()) {
                 timer1->set(DURATION_PAUSE);
             }
             return;
@@ -97,7 +97,7 @@ void timer<2>::handler()
     if (0.0 != next_duration) {
         timer1->set(next_duration);
     }
-    next_level = bh->get_level();
+    next_level_up = bh->get_level();
     next_period = bh->get_period();
     next_duration = bh->get_duration();
 }

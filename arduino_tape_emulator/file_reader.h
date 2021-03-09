@@ -80,21 +80,21 @@ public:
     {
         return m_block_type;
     }
-    byte is_pause()
+    bool is_pause()
     {
-        return STATE::PAUSE == m_state ? 1 : 0;
+        return STATE::PAUSE == m_state;
     }
     void read_continue()
     {
-        if (is_pause() == 1) {
+        if (is_pause()) {
             m_block_size = 0;
             m_block_read = 0;
             m_state = STATE::READING;
         }
     }
-    byte is_finished()
+    bool is_finished()
     {
-        return STATE::END == m_state ? 1 : 0;
+        return STATE::END == m_state;
     }
 };
 

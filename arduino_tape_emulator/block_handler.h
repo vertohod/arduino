@@ -101,9 +101,10 @@ private:
 public:
     void start(byte type)
     {
-        if (m_stage != STAGE::BEGIN) return;
-        if (move_data()) return;
-
+        if (!move_data()) {
+            Serial.println("block_handler::start, move_date returned FALSE");
+            return;
+        }
         m_stage = STAGE::PILOT;
         m_duration = (0 == type ? DURATION_PILOT_HEADER : DURATION_PILOT_DATA);
     }
@@ -131,7 +132,6 @@ public:
             case STAGE::PILOT:
                 m_period = m_meander_up ? PILOT_SGN_UP : PILOT_SGN_DN;
                 if (m_meander_up && m_request_switch) {
-                    Serial.println("Switch from PILOT to SYNC");
                     m_stage = STAGE::SYNC;
                     m_request_switch = false;
                 }
@@ -140,18 +140,12 @@ public:
             case STAGE::SYNC:
                 m_period = m_meander_up ? SYNC_SGN_UP : SYNC_SGN_DN;
                 if (m_meander_up) {
-                    Serial.println("Switch from SYNC to BUFFER");
-                    Serial.print("The size of output buffer is: ");
-                    Serial.println(m_length_out);
-                    Serial.print("The size of input buffer is: ");
-                    Serial.println(m_length_in);
                     m_stage = STAGE::BUFFER;
                 }
                 m_meander_up = !m_meander_up;
                 return !m_meander_up;
             case STAGE::BUFFER:
                 if (m_request_switch) {
-                    Serial.println("Switch from BUFFER to END");
                     m_stage = STAGE::END;
                 }
                 if (m_meander_up) {
@@ -160,7 +154,6 @@ public:
                             m_index_byte = 0;
                             m_index_bit = 0;
                         } else {
-                            Serial.println("Switch from BUFFER to END");
                             m_stage = STAGE::END;
                             return false;
                         }

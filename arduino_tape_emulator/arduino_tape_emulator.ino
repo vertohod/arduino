@@ -33,7 +33,6 @@ void start_reading()
 
 void setup()
 {
-    // FIXME
     Serial.begin(115200);
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
@@ -66,14 +65,10 @@ void loop()
 template<>
 void timer<1>::handler()
 {
-    Serial.println("Timer 1 is working");
-
     if (bh->is_pilot()) {
-        Serial.println("Timer 1, PILOT switch");
         bh->switch_next();
     }
     if (bh->is_finished() && reader->is_pause()) {
-        Serial.println("Timer 1, continue to read");
         reader->read_continue();
         start_reading();
     }

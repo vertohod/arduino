@@ -4,7 +4,7 @@
 #include <SPI.h>
 #include <SD.h>
 
-#define SDPIN 8
+#define SDPIN 10 
 
 class file_reader
 {
@@ -59,6 +59,9 @@ public:
                 if (counter == 2) {
                     m_block_size = buffer[0] | buffer[1] << 8;
                     m_block_type = buffer[2];
+
+                    Serial.print("Block type: "); Serial.println(m_block_type);
+                    Serial.print("Block size: "); Serial.println(m_block_size);
                 }
             } else if (++m_block_read == m_block_size) {
                 m_block_size = 0;
@@ -73,9 +76,9 @@ public:
     {
         return m_block_type;
     }
-    bool is_pause()
+    byte is_pause()
     {
-        return STATE::PAUSE == m_state;
+        return STATE::PAUSE == m_state ? 1 : 0;
     }
     void read_continue()
     {
@@ -83,9 +86,9 @@ public:
             m_state = STATE::READING;
         }
     }
-    bool is_finished()
+    byte is_finished()
     {
-        return STATE::END == m_state;
+        return STATE::END == m_state ? 1 : 0;
     }
 };
 

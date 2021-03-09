@@ -39,11 +39,11 @@ private:
     byte m_current_byte;
 
     volatile STAGE m_stage;
-    bool m_current_bit_one;
-    bool m_meander_up;
+    byte m_current_bit_one;
+    byte  m_meander_up;
     size_t m_period;
     volatile double m_duration;
-    bool m_request_switch;
+    byte m_request_switch;
 
 public:
     static byte** buffer_init(size_t buffer_size)
@@ -74,9 +74,9 @@ public:
         buffer_free(m_buffer_in);
     }
 
-    bool is_buffer_empty()
+    byte is_buffer_empty()
     {
-        return m_length_in == 0;
+        return 0 == m_length_in ? 1 : 0;
     }
 
     void fill_buffer(byte **buffer, size_t length)
@@ -93,13 +93,13 @@ private:
         m_index_byte = 0;
         m_index_bit = 0;
         m_current_bit_one = true;
-        m_meander_up = true;
+        m_meander_up = 1;
         m_period = 0;
         m_duration = 0.0;
         m_request_switch = false;
     }
 
-    bool move_data()
+    byte move_data()
     {
         if (m_length_in == 0) return false;
 
@@ -127,40 +127,45 @@ public:
         m_stage = STAGE::END;
     }
 
-    bool get_bit()
+    byte get_bit()
     {
         if (m_index_bit == 0) {
             m_index_bit = 8;
             m_current_byte = (*m_buffer_out)[m_index_byte++];
             if (m_index_byte == m_length_out) m_length_out = 0;
         }
-        return m_current_byte & 1 << --m_index_bit;
+        return (m_current_byte & 1 << --m_index_bit) == 0 ? 0 : 1;
     }
 
-    bool get_level()
+    byte get_level()
     {
         switch (m_stage) {
             case STAGE::BEGIN:
                 return false;
             case STAGE::PILOT:
                 m_period = m_meander_up ? PILOT_SGN_UP : PILOT_SGN_DN;
-                if (!m_meander_up && m_request_switch) {
+                if (0 == m_meander_up && m_request_switch) {
+                    Serial.println("Switch from PILOT to SYNC");
                     m_stage = STAGE::SYNC;
                     m_request_switch = false;
                 }
-                m_meander_up = !m_meander_up;
-                return !m_meander_up;
+                m_meander_up = m_meander_up ? 0 : 1;
+                return m_meander_up ? 0 : 1;
             case STAGE::SYNC:
                 m_period = m_meander_up ? SYNC_SGN_UP : SYNC_SGN_DN;
-                if (!m_meander_up) m_stage = STAGE::BUFFER;
-                m_meander_up = !m_meander_up;
-                return !m_meander_up;
+                if (0 == m_meander_up) {
+                    m_stage = STAGE::BUFFER;
+                    Serial.println("Switch from SYNC to BUFFER");
+                }
+                m_meander_up = m_meander_up ? 0 : 1;
+                return m_meander_up ? 0 : 1;
             case STAGE::BUFFER:
                 if (m_request_switch) m_stage = STAGE::END;
                 if (m_meander_up) {
                     if (m_length_out == 0) {
                         if (m_length_in == 0) {
                             m_stage = STAGE::END;
+                            Serial.println("Switch from BUFFER to END");
                             return false;
                         } else {
                             move_data();
@@ -175,8 +180,8 @@ public:
                 } else {
                     m_period = m_meander_up ? LG0_SGN_UP : LG0_SGN_DN;
                 }
-                m_meander_up = !m_meander_up;
-                return !m_meander_up;
+                m_meander_up = m_meander_up ? 0 : 1;
+                return m_meander_up ? 0 : 1;
             default:
                 init();
                 return false;
@@ -208,10 +213,13 @@ public:
         m_duration = 0.0;
         return result;
     }
-
-    bool is_finished()
+    byte is_pilot()
     {
-        return m_stage == STAGE::END;
+        return STAGE::PILOT == m_stage ? 1 : 0;
+    }
+    byte is_finished()
+    {
+        return STAGE::END == m_stage ? 1 : 0;
     }
 };
 

@@ -4,9 +4,10 @@
 
 #define OUTPUTPIN 4
 #define BUFFER_SIZE 16
-#define DURATION_PAUSE 1.0 // seconds
+#define DURATION_PAUSE 2.0 // seconds
 
 block_handler *bh = nullptr;
+timer<0> *timer0 = nullptr;
 timer<1> *timer1 = nullptr;
 timer<2> *timer2 = nullptr;
 file_reader *reader = nullptr;
@@ -14,6 +15,7 @@ file_reader *reader = nullptr;
 byte* buffer = new byte[BUFFER_SIZE];
 bool next_level_up = false;
 double  next_period = 0.0;
+byte next_period_byte = 0;
 double next_duration = 0.0;
 
 void start_reading()
@@ -24,10 +26,13 @@ void start_reading()
         bh->start(reader->get_block_type());
 
         next_level_up = bh->get_level();
-        next_period = bh->get_period();
+//      next_period = bh->get_period();
+        next_period_byte = bh->get_period_byte();
         next_duration = bh->get_duration();
 
-        timer2->set_min();
+//      FIXME test
+//      timer2->set_min();
+        timer0->set_min();
     }
 }
 
@@ -42,6 +47,7 @@ void setup()
 
     cli();
     DDRD = B00010000;
+    timer0 = new timer<0>();
     timer1 = new timer<1>();
     timer2 = new timer<2>();
     start_reading();
@@ -63,6 +69,30 @@ void loop()
 }
 
 template<>
+void timer<0>::handler()
+{
+    PORTD = next_level_up ? 0xff : 0x00;
+
+    if (0 != next_period_byte) {
+        timer0->set(next_period_byte);
+    } else {
+        if (bh->is_finished()) {
+            if (reader->is_pause()) {
+                timer1->set(DURATION_PAUSE);
+            }
+            timer0->stop();
+            return;
+        }
+    }
+    if (0.0 != next_duration) {
+        timer1->set(next_duration);
+    }
+    next_level_up = bh->get_level();
+    next_period_byte = bh->get_period_byte();
+    next_duration = bh->get_duration();
+}
+
+template<>
 void timer<1>::handler()
 {
     if (bh->is_pilot()) {
@@ -72,6 +102,7 @@ void timer<1>::handler()
         reader->read_continue();
         start_reading();
     }
+    timer1->stop();
 }
 
 template<>
@@ -86,6 +117,7 @@ void timer<2>::handler()
             if (reader->is_pause()) {
                 timer1->set(DURATION_PAUSE);
             }
+            timer2->stop();
             return;
         }
     }

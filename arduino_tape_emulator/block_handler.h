@@ -11,8 +11,8 @@
 #define LG0_SGN_UP      855
 #define LG0_SGN_DN      855
 
-#define DURATION_PILOT_HEADER    5.0 // seconds
-#define DURATION_PILOT_DATA      2.0 // seconds
+#define DURATION_PILOT_HEADER    8.0 // seconds
+#define DURATION_PILOT_DATA      4.0 // seconds
 
 #define Z80_FRQ_Mhz     3.5
 
@@ -192,6 +192,17 @@ public:
     double get_period()
     {
         return (static_cast<double>(m_period) / Z80_FRQ_Mhz) / 1000000;
+    }
+
+    byte get_period_byte()
+    {
+        if (PILOT_SGN_UP == m_period) return 142;
+        if (SYNC_SGN_UP == m_period) return 43;
+        if (SYNC_SGN_DN == m_period) return 48; 
+        if (LG1_SGN_UP == m_period) return 112;
+        if (LG0_SGN_UP == m_period) return 56;
+
+        return 0;
     }
 
     double get_duration()

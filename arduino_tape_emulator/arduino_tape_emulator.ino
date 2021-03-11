@@ -7,9 +7,8 @@
 #define DURATION_PAUSE 2.0 // seconds
 
 block_handler *bh = nullptr;
-timer<0> *timer0 = nullptr;
+timer<22> *timer2 = nullptr;
 timer<1> *timer1 = nullptr;
-timer<2> *timer2 = nullptr;
 file_reader *reader = nullptr;
 
 byte* buffer = new byte[BUFFER_SIZE];
@@ -26,32 +25,27 @@ void start_reading()
         bh->start(reader->get_block_type());
 
         next_level_up = bh->get_level();
-//      next_period = bh->get_period();
+        next_period = bh->get_period();
         next_period_byte = bh->get_period_byte();
         next_duration = bh->get_duration();
 
-//      FIXME test
-//      timer2->set_min();
-        timer0->set_min();
+        timer2->set_min();
     }
 }
 
 void setup()
 {
-    Serial.begin(115200);
+//    Serial.begin(115200);
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
 
     reader = new file_reader("tape.tap");
     bh = new block_handler(BUFFER_SIZE);
 
-    cli();
     DDRD = B00010000;
-    timer0 = new timer<0>();
+    timer2 = new timer<22>();
     timer1 = new timer<1>();
-    timer2 = new timer<2>();
     start_reading();
-    sei();
 
     digitalWrite(LED_BUILTIN, LOW);
 }
@@ -69,18 +63,18 @@ void loop()
 }
 
 template<>
-void timer<0>::handler()
+void timer<22>::handler()
 {
     PORTD = next_level_up ? 0xff : 0x00;
 
     if (0 != next_period_byte) {
-        timer0->set(next_period_byte);
+        timer2->set(next_period_byte);
     } else {
         if (bh->is_finished()) {
             if (reader->is_pause()) {
                 timer1->set(DURATION_PAUSE);
             }
-            timer0->stop();
+            timer2->stop();
             return;
         }
     }

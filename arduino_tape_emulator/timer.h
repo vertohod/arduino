@@ -20,8 +20,8 @@ public:
     {
         timer::handler();
     } 
-    void set(double duration);
-    void set(byte duration);
+    void set(double duration) {}
+    void set(byte duration) {}
     void set_min()
     {
         set(0.001024);
@@ -29,51 +29,15 @@ public:
     void stop();
 };
 
-// --------------- Timer 0 ----------------
-template<>
-timer<0>::timer() : m_is_working(false)
-{
-    cli();
-    TCCR2A = 0;
-    TCCR2B = 0;
-    TCNT2 = 0;
-    TIMSK2 = 1 << TOIE2;
-    sei();
-}
-template<>
-void timer<0>::set(byte duration)
-{
-    TCNT2 = 0xff - duration;
-
-    if (!m_is_working) {
-        TCCR2B = 1 << CS21 | 1 << CS20;
-        m_is_working = true;
-    }
-}
-template<>
-void timer<0>::set_min()
-{
-    set(static_cast<byte>(128));
-}
-template<>
-void timer<0>::stop()
-{
-    // Turn-off timer
-    TCCR2B = 0;
-    m_is_working = false;
-}
-
 // --------------- Timer 1 ----------------
 template<>
 timer<1>::timer() : m_is_working(false)
 {
     m_TCCRnB = 1 << WGM12;
 
-    cli();
     TCCR1A = 0;
     TCCR1B = m_TCCRnB;
     TIMSK1 = 1 << OCIE1A;
-    sei();
 }
 template<>
 void timer<1>::set(double duration)
@@ -100,11 +64,9 @@ timer<2>::timer() : m_is_working(false)
 {
     m_TCCRnB = 1 << WGM22;
 
-    cli();
     TCCR2A = 0;
     TCCR2B = m_TCCRnB;
     TIMSK2 = 1 << OCIE2A;
-    sei();
 }
 template<>
 void timer<2>::set(double duration)
@@ -125,12 +87,39 @@ void timer<2>::stop()
     m_is_working = false;
 }
 
-ISR(TIMER2_OVF_vect)
+// --------------- Timer 2.2 ----------------
+template<>
+timer<22>::timer() : m_is_working(false)
 {
-    cli();
-    timer<0>::f();
-    sei();
+    TCCR2A = 0;
+    TCCR2B = 0;
+    TCNT2 = 0;
+    TIMSK2 = 1 << TOIE2;
 }
+template<>
+void timer<22>::set(byte duration)
+{
+    TCNT2 = 0xff - duration;
+
+    if (!m_is_working) {
+        TCCR2B = 1 << CS21 | 1 << CS20;
+        m_is_working = true;
+    }
+}
+template<>
+void timer<22>::set_min()
+{
+    set(static_cast<byte>(128));
+}
+template<>
+void timer<22>::stop()
+{
+    // Turn-off timer
+    TCCR2B = 0;
+    m_is_working = false;
+}
+
+// -------------- Handlers ----------------
 
 ISR(TIMER1_COMPA_vect)
 {
@@ -143,6 +132,13 @@ ISR(TIMER2_COMPA_vect)
 {
     cli();
     timer<2>::f();
+    sei();
+}
+
+ISR(TIMER2_OVF_vect)
+{
+    cli();
+    timer<22>::f();
     sei();
 }
 

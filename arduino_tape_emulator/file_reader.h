@@ -62,8 +62,8 @@ public:
                     // The byte of type should be counted
                     m_block_read = 1;
 
-                    Serial.print("Block type: "); Serial.println(m_block_type);
-                    Serial.print("Block size: "); Serial.println(m_block_size);
+//                    Serial.print("Block type: "); Serial.println(m_block_type);
+//                    Serial.print("Block size: "); Serial.println(m_block_size);
                 }
             } else {
                 ++m_block_read;

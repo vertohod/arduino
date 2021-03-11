@@ -2,14 +2,11 @@
 #define BLOCK_HANDLER_H
 
 // Signal duration in ticks
-#define PILOT_SGN_UP    2168
-#define PILOT_SGN_DN    2168
+#define PILOT_SGN       2168
 #define SYNC_SGN_UP     667
 #define SYNC_SGN_DN     735
-#define LG1_SGN_UP      1710
-#define LG1_SGN_DN      1710
-#define LG0_SGN_UP      855
-#define LG0_SGN_DN      855
+#define LG1_SGN         1710
+#define LG0_SGN         855
 
 #define DURATION_PILOT_HEADER    8.0 // seconds
 #define DURATION_PILOT_DATA      4.0 // seconds
@@ -102,7 +99,7 @@ public:
     void start(byte type)
     {
         if (!move_data()) {
-            Serial.println("block_handler::start, move_date returned FALSE");
+//            Serial.println("block_handler::start, move_date returned FALSE");
             return;
         }
         m_stage = STAGE::PILOT;
@@ -130,7 +127,7 @@ public:
             case STAGE::BEGIN:
                 return false;
             case STAGE::PILOT:
-                m_period = m_meander_up ? PILOT_SGN_UP : PILOT_SGN_DN;
+                m_period = PILOT_SGN;
                 if (m_meander_up && m_request_switch) {
                     m_stage = STAGE::SYNC;
                     m_request_switch = false;
@@ -160,11 +157,7 @@ public:
                     }
                     m_current_bit_one = get_bit();
                 }
-                if (m_current_bit_one) {
-                    m_period = m_meander_up ? LG1_SGN_UP : LG1_SGN_DN;
-                } else {
-                    m_period = m_meander_up ? LG0_SGN_UP : LG0_SGN_DN;
-                }
+                m_period = m_current_bit_one ? LG1_SGN : LG0_SGN;
                 m_meander_up = !m_meander_up;
                 return !m_meander_up;
             case STAGE::END:
@@ -196,11 +189,11 @@ public:
 
     byte get_period_byte()
     {
-        if (PILOT_SGN_UP == m_period) return 142;
+        if (PILOT_SGN == m_period) return 142;
         if (SYNC_SGN_UP == m_period) return 43;
         if (SYNC_SGN_DN == m_period) return 48; 
-        if (LG1_SGN_UP == m_period) return 112;
-        if (LG0_SGN_UP == m_period) return 56;
+        if (LG1_SGN == m_period) return 112;
+        if (LG0_SGN == m_period) return 56;
 
         return 0;
     }

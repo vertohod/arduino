@@ -102,7 +102,7 @@ void timer<22>::set(byte duration)
     TCNT2 = 0xff - duration;
 
     if (!m_is_working) {
-        TCCR2B = 1 << CS21 | 1 << CS20;
+        TCCR2B = 1 << CS22;
         m_is_working = true;
     }
 }

@@ -189,11 +189,13 @@ public:
 
     byte get_period_byte()
     {
-        if (PILOT_SGN == m_period) return 142;
-        if (SYNC_SGN_UP == m_period) return 43;
-        if (SYNC_SGN_DN == m_period) return 48; 
-        if (LG1_SGN == m_period) return 112;
-        if (LG0_SGN == m_period) return 56;
+        const double factor = 1.081;
+
+        if (PILOT_SGN == m_period) return static_cast<double>(142) * factor;
+        if (SYNC_SGN_UP == m_period) return static_cast<double>(43) * factor;
+        if (SYNC_SGN_DN == m_period) return static_cast<double>(48) * factor;
+        if (LG1_SGN == m_period) return static_cast<double>(112) * factor;
+        if (LG0_SGN == m_period) return static_cast<double>(56) * factor;
 
         return 0;
     }

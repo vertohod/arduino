@@ -1,17 +1,20 @@
 #ifndef BLOCK_HANDLER_H
 #define BLOCK_HANDLER_H
 
+#include "types.h"
+
 // Signal duration in ticks
 #define PILOT_SGN       2168
-#define SYNC_SGN_UP     667
-#define SYNC_SGN_DN     735
+#define SYNC_SGN1       667
+#define SYNC_SGN2       735
+#define SYNC_SGN3       954
 #define LG1_SGN         1710
 #define LG0_SGN         855
 
-#define DURATION_PILOT_HEADER    8.0 // seconds
-#define DURATION_PILOT_DATA      4.0 // seconds
+#define PILOT_HEADER_IMPULSES   3228 
+#define PILOT_DATA_IMPULSES     1614 
 
-#define Z80_FRQ_Mhz     3.5
+#define Z80_FRQ_Hz 3500000
 
 class block_handler
 {
@@ -23,26 +26,29 @@ private:
 
     enum STAGE
     {
-        BEGIN,
         PILOT,
-        SYNC,
-        BUFFER,
-        END
+        SYNC1,
+        SYNC2,
+        DATA,
+        SYNC3,
+        FINAL1,
+        FINAL2,
+        FINISH
     };
 
     size_t m_index_byte;
-    size_t m_index_bit;
+    byte m_mask;
     byte m_current_byte;
 
     volatile STAGE m_stage;
     bool m_current_bit_one;
     bool  m_meander_up;
     size_t m_period;
-    volatile double m_duration;
-    bool m_request_switch;
+
+    size_t m_impulse_couter;
 
 public:
-    block_handler(size_t buffer_size) : m_stage(STAGE::BEGIN)
+    block_handler(size_t buffer_size) : m_stage(STAGE::FINISH)
     {
         m_buffer_in = new byte[buffer_size];
         m_buffer_out = new byte[buffer_size];
@@ -74,12 +80,10 @@ private:
         m_length_in = 0;
         m_length_out = 0;
         m_index_byte = 0;
-        m_index_bit = 0;
+        m_mask = 0;
         m_current_bit_one = false;
         m_meander_up = true;
         m_period = 0;
-        m_duration = 0.0;
-        m_request_switch = false;
     }
 
     bool move_data()
@@ -98,61 +102,57 @@ private:
 public:
     void start(byte type)
     {
-        if (!move_data()) {
-//            Serial.println("block_handler::start, move_date returned FALSE");
-            return;
-        }
         m_stage = STAGE::PILOT;
-        m_duration = (0 == type ? DURATION_PILOT_HEADER : DURATION_PILOT_DATA);
+        m_impulse_couter = (0 == type ? PILOT_HEADER_IMPULSES : PILOT_DATA_IMPULSES);
     }
 
     void stop()
     {
-        m_stage = STAGE::END;
+        m_stage = STAGE::FINISH;
     }
 
     bool get_bit()
     {
-        if (m_index_bit == 0) {
-            m_index_bit = 8;
+        if (0 == m_mask) {
+            m_mask = 0x80;
             m_current_byte = m_buffer_out[m_index_byte++];
             if (m_index_byte == m_length_out) m_length_out = 0;
         }
-        return (m_current_byte & (1 << --m_index_bit)) != 0;
+        bool result = m_current_byte & m_mask;
+        m_mask >>= 1;
+        return result;
     }
 
     bool get_level()
     {
         switch (m_stage) {
-            case STAGE::BEGIN:
-                return false;
             case STAGE::PILOT:
                 m_period = PILOT_SGN;
-                if (m_meander_up && m_request_switch) {
-                    m_stage = STAGE::SYNC;
-                    m_request_switch = false;
+                if (!m_meander_up) {
+                    --m_impulse_couter;
+                    if (0 == m_impulse_couter) m_stage = STAGE::SYNC1;
                 }
                 m_meander_up = !m_meander_up;
                 return !m_meander_up;
-            case STAGE::SYNC:
-                m_period = m_meander_up ? SYNC_SGN_UP : SYNC_SGN_DN;
+            case STAGE::SYNC1:
+                m_period = SYNC_SGN1;
+                m_stage = STAGE::SYNC2;
+                return true;
+            case STAGE::SYNC2:
+                m_period = SYNC_SGN2;
+                m_stage = STAGE::DATA;
+                m_meander_up = true;  // for any case
+                return false;
+            case STAGE::DATA:
                 if (m_meander_up) {
-                    m_stage = STAGE::BUFFER;
-                }
-                m_meander_up = !m_meander_up;
-                return !m_meander_up;
-            case STAGE::BUFFER:
-                if (m_request_switch) {
-                    m_stage = STAGE::END;
-                }
-                if (m_meander_up) {
-                    if (m_length_out == 0) {
+                    if (0 == m_length_out && 0 == m_mask) {
                         if (move_data()) {
                             m_index_byte = 0;
-                            m_index_bit = 0;
+                            m_mask = 0;
                         } else {
-                            m_stage = STAGE::END;
-                            return false;
+                            m_period = SYNC_SGN3;
+                            m_stage = STAGE::FINAL1;
+                            return true;
                         }
                     }
                     m_current_bit_one = get_bit();
@@ -160,51 +160,22 @@ public:
                 m_period = m_current_bit_one ? LG1_SGN : LG0_SGN;
                 m_meander_up = !m_meander_up;
                 return !m_meander_up;
-            case STAGE::END:
+            case STAGE::FINAL1:
+                m_stage = STAGE::FINAL2;
+                return false;
+            case STAGE::FINAL2:
+                m_stage = STAGE::FINISH;
+                return false;
+            case STAGE::FINISH:
                 init();
                 return false;
             default:
                 return false;
         }
     }
-
-    void switch_next()
-    {
-        switch (m_stage) {
-            case STAGE::PILOT:
-                m_request_switch = true;
-                break;
-            case STAGE::BUFFER:
-                m_request_switch = true;
-                break;
-            default:
-                break;
-        }
-    }
-
     double get_period()
     {
-        return (static_cast<double>(m_period) / Z80_FRQ_Mhz) / 1000000;
-    }
-
-    byte get_period_byte()
-    {
-        const double factor = 1.081;
-
-        if (PILOT_SGN == m_period) return static_cast<double>(142) * factor;
-        if (SYNC_SGN_UP == m_period) return static_cast<double>(43) * factor;
-        if (SYNC_SGN_DN == m_period) return static_cast<double>(48) * factor;
-        if (LG1_SGN == m_period) return static_cast<double>(112) * factor;
-        if (LG0_SGN == m_period) return static_cast<double>(56) * factor;
-
-        return 0;
-    }
-
-    double get_duration()
-    {
-        auto result = m_duration;
-        m_duration = 0.0;
-        return result;
+        return static_cast<double>(m_period) / Z80_FRQ_Hz * 2;
     }
     bool is_pilot()
     {
@@ -212,7 +183,7 @@ public:
     }
     bool is_finished()
     {
-        return STAGE::END == m_stage;
+        return STAGE::FINISH == m_stage;
     }
 };
 

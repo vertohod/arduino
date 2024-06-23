@@ -9,7 +9,7 @@ private:
     list m_data;
 
 public:
-    void add_item(char file_name);
+    void add_item(const char* file_name);
     void clean();
     char* get_chosen_item();
 

@@ -2,59 +2,106 @@
 #define LIST_H
 
 template <class T>
-class list
-{
+class list {
 public:
-    class iterator
-    {
+    class iterator {
+    friend list;
     private:
-        T value;
-        item* prev;
-        item* next;
+        T mValue;
+        iterator* mPrev;
+        iterator* mNext;
 
     public:
-        iterator() : prev(nullptr), next(nullptr) {}
-        iterator& operator++()
-        {
-            value = next->value;
-            prev = next->prev;
-            next = next->next;
+        iterator() : mPrev(nullptr), mNext(nullptr) {}
+        iterator(const iterator& obj) {
+            mValue = obj.mValue;
+            mPrev = obj.mPrev;
+            mNext = obj.mNext;
+        }
+        iterator& operator=(const iterator& obj) {
+            mValue = obj.mValue;
+            mPrev = obj.mPrev;
+            mNext = obj.mNext;
             return *this;
         }
-        iterator operator++(int)
-        {
-            auto ret = *this;
-            value = next->value;
-            prev = next->prev;
-            next = next->next;
-            return ret;
-        }
-        iterator& operator--()
-        {
-            value = prev->value;
-            prev = prev->prev;
-            next = prev->next;
+        iterator& operator++() {
+            mValue = mNext->mValue;
+            mPrev = mNext->mPrev;
+            mNext = mNext->mNext;
             return *this;
         }
-        iterator operator--(int)
-        {
+        iterator operator++(int) {
             auto ret = *this;
-            value = prev->value;
-            prev = prev->prev;
-            next = prev->next;
+            mValue = mNext->mValue;
+            mPrev = mNext->mPrev;
+            mNext = mNext->mNext;
             return ret;
+        }
+        iterator& operator--() {
+            mValue = mPrev->mValue;
+            mPrev = mPrev->mPrev;
+            mNext = mPrev->mNext;
+            return *this;
+        }
+        iterator operator--(int) {
+            auto ret = *this;
+            mValue = mPrev->mValue;
+            mPrev = mPrev->mPrev;
+            mNext = mPrev->mNext;
+            return ret;
+        }
+        bool operator==(const iterator& obj) {
+            return mPrev == obj.mPrev && mNext == obj.mNext; 
+        }
+        bool operator!=(const iterator& obj) {
+            return !(*this == obj); 
+        }
+        T& operator*() {
+            return mValue;
+        }
+        T* operator->() {
+            return &mValue;
         }
     };
 
 private:
-    iterator* begin;
-    iterator* end;
+    iterator* mBegin;
+    iterator* mEnd;
 
 public:
-    list() : first(nullptr), last(nullptr) {}
+    list() {
+        mBegin = new iterator();
+        mEnd = mBegin;
+    }
+    ~list() {
+        delete mBegin;
+    }
+    iterator& begin() {
+        return *mBegin;
+    }
+    iterator& end() {
+        return *mEnd;
+    }
+    void push(const T& value) {
+        auto last = mEnd;
+        last->mValue = value;
 
-    void push(T value);
-    void clean();
+        mEnd = new iterator();
+        last->mNext = mEnd;
+        mEnd->mPrev = last;
+        mEnd->mNext = mBegin;
+    }
+    void clear() {
+        auto last = mEnd;
+        mEnd = mBegin;
+        while (*mBegin != *last) {
+            auto prev = last->mPrev;
+            delete last;
+            last = prev;
+        }
+        last->mPrev = nullptr;
+        last->mNext = nullptr;
+    }
 };
 
 #endif

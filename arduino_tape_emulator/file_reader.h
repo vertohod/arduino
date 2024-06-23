@@ -4,8 +4,6 @@
 #include <SPI.h>
 #include <SD.h>
 
-#define SDPIN 10 
-
 class file_reader
 {
 private:
@@ -24,14 +22,14 @@ private:
     volatile STATE m_state;
 
 public:
-    file_reader(char* file_name) :
+    file_reader(uint8_t sdpin, char* file_name) :
         m_block_type(0),
         m_block_type_known(false),
         m_block_size(0),
         m_block_read(0),
         m_state(STATE::READING)
     {
-        if (!SD.begin(SDPIN)) {
+        if (!SD.begin(sdpin)) {
             while (1);
         }
         m_file = SD.open(file_name);

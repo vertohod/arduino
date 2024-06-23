@@ -1,8 +1,10 @@
 #include "types.h"
 #include "block_handler.h"
 #include "file_reader.h"
+#include "dir_reader.h"
 #include "timer1.h"
 
+#define SDPIN 10
 #define OUTPUTPIN 4
 #define BUFFER_SIZE 32
 #define DURATION_PAUSE 2.0 // seconds
@@ -14,12 +16,24 @@ byte* buffer = new byte[BUFFER_SIZE];
 
 void setup()
 {
-//    Serial.begin(115200);
+    Serial.begin(9600);
 
+    auto dir = new dir_reader(SDPIN);
+    auto file_list = dir->read_root();
+    if (file_list != nullptr) {
+        for (auto it = file_list->begin(); it != file_list->end(); ++it) {
+            Serial.println(it->c_str());
+        }
+    }
+    delete file_list;
+}
+
+void load_file()
+{
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
 
-    reader = new file_reader("tape.tap");
+    reader = new file_reader(SDPIN, "tape.tap");
     bh = new block_handler(BUFFER_SIZE);
 
     // Enable INT0
@@ -30,6 +44,7 @@ void setup()
 
     digitalWrite(LED_BUILTIN, LOW);
 }
+
 
 void loop()
 {

@@ -43,4 +43,3 @@ void timer1::stop()
 {
     TCCR1B = 0; // Turn-off timer
 }
-

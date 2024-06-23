@@ -10,15 +10,6 @@ private:
 
 public:
     string() : mData(nullptr), mLength(0), mCapacity(0) {}
-    /*
-    string(string&& str) {
-        auto temp = str.mData;
-        str.mData = mData;
-        mData = temp;
-        mLength = str.mLength;
-        mCapacity = str.mCapacity;
-    }
-    */
     string(const string& str) {
         resize(str.mLength);
         memcpy(str.mData, mData, str.mLength + 1);
@@ -39,12 +30,14 @@ public:
         resize(str.mLength);
         memcpy(str.mData, mData, str.mLength + 1);
         mLength = str.mLength;
+        return *this;
     }
     string& operator+(const char* str) {
         auto len = strlen(str);
         resize(mLength + len);
         memcpy(str, &mData[mLength], len + 1);
         mLength += len;
+        return *this;
     }
     const char* c_str() {
         return mData;
@@ -67,9 +60,9 @@ private:
         }
     }
     void resize(size_t size) {
-        if (size > mCapacity) {
-            mCapacity = mCapacity == 0 ? size + 1 : size * 2;
-            auto temp = new char[mCapacity];
+        if ((size + 1) > mCapacity) {
+            mCapacity = size + 1;
+            char* temp = new char[mCapacity];
             if (mData) {
                 memcpy(mData, temp, mLength + 1);
                 delete[] mData;

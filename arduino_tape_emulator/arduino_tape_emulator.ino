@@ -1,3 +1,5 @@
+#include <MemoryFree.h>
+
 #include "types.h"
 #include "block_handler.h"
 #include "file_reader.h"
@@ -18,6 +20,9 @@ void setup()
 {
     Serial.begin(9600);
 
+    Serial.print(F("RAM left: "));
+    Serial.println(FreeRam());
+
     auto dir = new dir_reader(SDPIN);
     auto file_list = dir->read_root();
     if (file_list != nullptr) {
@@ -26,6 +31,10 @@ void setup()
         }
     }
     delete file_list;
+    delete dir;
+
+    Serial.print(F("In the end: "));
+    Serial.println(FreeRam());
 }
 
 void load_file()

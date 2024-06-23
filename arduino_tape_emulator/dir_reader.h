@@ -16,7 +16,7 @@ private:
 public:
     dir_reader(uint8_t sdpin) : m_file_list(nullptr)
     {
-        Serial.print("Initializing SD card...");
+        Serial.println("Initializing SD card...");
         if (!SD.begin(sdpin)) {
             Serial.println("initialization failed.");
             while(true);
@@ -34,7 +34,6 @@ public:
     t_file_list* read_dir(const char* path)
     {
         m_file_list = new t_file_list();
-        
         auto root = SD.open(path);
         while (true) {
             auto file = root.openNextFile();
@@ -49,7 +48,6 @@ public:
             file.close();
         }
         root.close();
-
         return m_file_list;
     }
 };

@@ -1,7 +1,7 @@
 #ifndef TIMER1_H
 #define TIMER1_H
 
-#include "types.h"
+#include "Types.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
@@ -13,23 +13,23 @@
 #define STEP4 (((MAX_OCR1A + 1) * 2 * 256) / TIMER_FRQ_Hz)
 #define STEP5 (((MAX_OCR1A + 1) * 2 * 1024) / TIMER_FRQ_Hz)
 
-class timer1
+class Timer1
 {
 private:
-    byte m_prescaling;
-    uint16_t m_OCR1A;
-    double m_duration;
+    byte mPrescaling;
+    uint16_t mOCR1A;
+    double mDuration;
 
 private:
-    timer1();
+    Timer1();
 
 public:
-    static timer1& instance() {
-        static timer1 object;
+    static Timer1& instance() {
+        static Timer1 object;
         return object;
     }
-    timer1(timer1 const&) = delete;
-    void operator=(timer1 const&) = delete;
+    Timer1(Timer1 const&) = delete;
+    void operator=(Timer1 const&) = delete;
 
     void init(double duration);
     double duration();

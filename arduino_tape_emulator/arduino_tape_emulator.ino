@@ -1,18 +1,18 @@
 #include <MemoryFree.h>
 
-#include "types.h"
-#include "block_handler.h"
-#include "file_reader.h"
-#include "dir_reader.h"
-#include "timer1.h"
+#include "Types.h"
+#include "BlockHandler.h"
+#include "FileReader.h"
+#include "DirReader.h"
+#include "Timer1.h"
 
 #define SDPIN 10
 #define OUTPUTPIN 4
 #define BUFFER_SIZE 32
 #define DURATION_PAUSE 2.0 // seconds
 
-block_handler *bh = nullptr;
-file_reader *reader = nullptr;
+BlockHandler *bh = nullptr;
+FileReader *reader = nullptr;
 
 byte* buffer = new byte[BUFFER_SIZE];
 
@@ -23,27 +23,28 @@ void setup()
     Serial.print(F("RAM left: "));
     Serial.println(FreeRam());
 
-    auto dir = new dir_reader(SDPIN);
-    auto file_list = dir->read_root();
-    if (file_list != nullptr) {
-        for (auto it = file_list->begin(); it != file_list->end(); ++it) {
+    auto dirReader = new DirReader(SDPIN);
+    dirReader->setDirectory("/");
+    auto fileList = dirReader->readNext(5);
+    if (fileList != nullptr) {
+        for (auto it = fileList->begin(); it != fileList->end(); ++it) {
             Serial.println(it->c_str());
         }
     }
-    delete file_list;
-    delete dir;
+    delete fileList;
+    delete dirReader;
 
     Serial.print(F("In the end: "));
     Serial.println(FreeRam());
 }
 
-void load_file()
+void loadFile()
 {
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
 
-    reader = new file_reader(SDPIN, "tape.tap");
-    bh = new block_handler(BUFFER_SIZE);
+    reader = new FileReader(SDPIN, "tape.tap");
+    bh = new BlockHandler(BUFFER_SIZE);
 
     // Enable INT0
     EICRA = 1 << ISC01 | 1 << ISC00;
@@ -57,60 +58,60 @@ void load_file()
 
 void loop()
 {
-    if (reader->is_pause()) return;
+    if (reader->isPause()) return;
 
-    if (!bh->is_finished() && bh->is_buffer_empty()) {
-        size_t length = reader->get_data(buffer, BUFFER_SIZE);
+    if (!bh->isFinished() && bh->isBufferEmpty()) {
+        size_t length = reader->getData(buffer, BUFFER_SIZE);
         if (length > 0) {
-            buffer = bh->fill_buffer(buffer, length);
+            buffer = bh->fillBuffer(buffer, length);
         }
     }
 }
 
-class duration_counter
+class DurationCounter
 {
 private:
-    bool m_enabled;
-    double m_duration;
+    bool mEnabled;
+    double mDuration;
 
 public:
-    duration_counter() : m_enabled(false), m_duration(0.0) {}
+    DurationCounter() : mEnabled(false), mDuration(0.0) {}
     void set(double duration)
     {
-        m_duration = duration;
-        m_enabled = duration != 0.0;
+        mDuration = duration;
+        mEnabled = duration != 0.0;
     }
-    bool enabled() { return m_enabled; }
+    bool enabled() { return mEnabled; }
     bool check(double period)
     {
-        if (m_duration <= period) {
-            m_enabled = false;
+        if (mDuration <= period) {
+            mEnabled = false;
             return true;
         } else {
-            m_duration -= period;
+            mDuration -= period;
         }
         return false;
     }
 };
 
-duration_counter dc;
-bool next_level_up = false;
-double next_period = 0.0;
+DurationCounter dc;
+bool nextLevelUp = false;
+double nextPeriod = 0.0;
 
-void start_reading()
+void startReading()
 {
-    size_t length = reader->get_data(buffer, BUFFER_SIZE);
+    size_t length = reader->getData(buffer, BUFFER_SIZE);
     if (length > 0) {
-        buffer = bh->fill_buffer(buffer, length);
-        bh->start(reader->get_block_type());
+        buffer = bh->fillBuffer(buffer, length);
+        bh->start(reader->getBlockType());
 
         // initialization
-        next_level_up = bh->get_level();
-        next_period = bh->get_period();
+        nextLevelUp = bh->getLevel();
+        nextPeriod = bh->getPeriod();
 
         // just launch the process with some period
-        timer1::instance().init(next_period);
-        timer1::instance().start();
+        Timer1::instance().init(nextPeriod);
+        Timer1::instance().start();
     }
 }
 
@@ -120,31 +121,31 @@ ISR(TIMER1_COMPA_vect)
 {
     cli();
 
-    if (reader->is_pause() && bh->is_finished()) {
+    if (reader->isPause() && bh->isFinished()) {
         if (dc.enabled()) {
-            if (dc.check(timer1::instance().duration())) {
-                reader->read_continue();
-                start_reading();
+            if (dc.check(Timer1::instance().duration())) {
+                reader->readContinue();
+                startReading();
             }
         } else {
             dc.set(DURATION_PAUSE);
-            timer1::instance().init(DURATION_PAUSE);
-            timer1::instance().start();
+            Timer1::instance().init(DURATION_PAUSE);
+            Timer1::instance().start();
 
             sei();
             return;
         }
     }
 
-    if (!bh->is_finished()) {
-        PORTD = next_level_up ? 0xff : 0x00;
-        timer1::instance().start();
+    if (!bh->isFinished()) {
+        PORTD = nextLevelUp ? 0xff : 0x00;
+        Timer1::instance().start();
 
-        next_level_up = bh->get_level();
-        next_period = bh->get_period();
+        nextLevelUp = bh->getLevel();
+        nextPeriod = bh->getPeriod();
 
         // initialize the timer now do not waste time
-        timer1::instance().init(next_period);
+        Timer1::instance().init(nextPeriod);
     }
 
     sei();
@@ -152,5 +153,5 @@ ISR(TIMER1_COMPA_vect)
 
 ISR(INT0_vect)
 {
-    start_reading();
+    startReading();
 }

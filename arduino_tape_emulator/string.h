@@ -21,9 +21,7 @@ public:
         memcpy(str, mData, mLength + 1);
     }
     ~string() {
-        if (mData) {
-            delete[] mData;
-        }
+        clear();
     }
     string& operator=(const string& str)
     {
@@ -45,9 +43,21 @@ public:
     size_t length() {
         return mLength;
     }
+    bool empty() {
+        return 0 == strlen(mData);
+    }
+    void clear() {
+        if (mData) {
+            delete[] mData;
+            mData = nullptr;
+        }
+    }
 
 private:
     size_t strlen(char* str) {
+        if (nullptr == str) {
+            return 0;
+        }
         size_t i = 0;
         while (str[i] != 0) {
             ++i;

@@ -8,8 +8,8 @@ public:
     friend list;
     private:
         T mValue;
-        iterator* mPrev;
-        iterator* mNext;
+        iterator*   mPrev;
+        iterator*   mNext;
 
     public:
         iterator() : mPrev(nullptr), mNext(nullptr) {}
@@ -65,11 +65,12 @@ public:
     };
 
 private:
-    iterator* mBegin;
-    iterator* mEnd;
+    iterator*   mBegin;
+    iterator*   mEnd;
+    size_t      mSize;
 
 public:
-    list() {
+    list() : mSize(0) {
         mBegin = new iterator();
         mEnd = mBegin;
     }
@@ -90,6 +91,8 @@ public:
         last->mNext = mEnd;
         mEnd->mPrev = last;
         mEnd->mNext = mBegin;
+
+        ++mSize;
     }
     void clear() {
         auto last = mEnd;
@@ -101,6 +104,11 @@ public:
         }
         last->mPrev = nullptr;
         last->mNext = nullptr;
+
+        mSize = 0;
+    }
+    size_t size() {
+        return mSize;
     }
 };
 

@@ -1,4 +1,4 @@
-#ifndef STRINT_H
+#ifndef STRING_H
 #define STRING_H
 
 class string

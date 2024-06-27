@@ -6,12 +6,9 @@
 #include "Types.h"
 #include "list.h"
 #include "string.h"
+#include "IDataProvider.h"
 
-typedef list<string> t_file_list;
-
-class IDataProvider;
-
-class DirReader// : public IDataProvider
+class DirReader : public IDataProvider
 {
 private:
     string          mPaht;
@@ -19,8 +16,11 @@ private:
     size_t          mLastAmount;
     File            mDirectory;
 
+// IDataProvider
+    size_t          mSizeDataSet;
+
 public:
-    DirReader(uint8_t SDPin) : mPosition(0), mLastAmount(0)
+    DirReader(uint8_t SDPin) : mPosition(0), mLastAmount(0), mSizeDataSet(0)
     {
         Serial.println("Initializing SD card...");
         if (!SD.begin(SDPin)) {
@@ -34,7 +34,7 @@ public:
     {
         mPaht = path;
     }
-    t_file_list* readNext(size_t amount)
+    tListString* readNext(size_t amount)
     {
         if (!openDirectory()) {
             return nullptr;
@@ -51,7 +51,7 @@ public:
         closeDirectory();
         return result;
     }
-    t_file_list* readPrev(size_t amount)
+    tListString* readPrev(size_t amount)
     {
         if (!openDirectory()) {
             return nullptr;
@@ -69,6 +69,20 @@ public:
         }
         closeDirectory();
         return result;
+    }
+
+// IDataProvider
+    void setSizeDataSet(size_t size) override
+    {
+        mSizeDataSet = size;
+    }
+    tListString* next() override
+    {
+        return readNext(mSizeDataSet);
+    }
+    tListString* prev() override
+    {
+        return readPrev(mSizeDataSet);
     }
 
 private:
@@ -91,9 +105,9 @@ private:
         }
         return true;
     }
-    t_file_list* readFiles(size_t amount)
+    tListString* readFiles(size_t amount)
     {
-        auto fileList = new t_file_list();
+        auto fileList = new tListString();
         for (size_t i = 0; i < amount; ++i) {
             auto file = mDirectory.openNextFile();
             if (!file) {

@@ -5,6 +5,7 @@
 #include "FileReader.h"
 #include "DirReader.h"
 #include "Timer1.h"
+#include "Menu.h"
 
 #define SDPIN 10
 #define OUTPUTPIN 4
@@ -13,6 +14,7 @@
 
 BlockHandler *bh = nullptr;
 FileReader *reader = nullptr;
+Menu *menu = nullptr;
 
 byte* buffer = new byte[BUFFER_SIZE];
 
@@ -22,6 +24,8 @@ void setup()
 
     Serial.print(F("RAM left: "));
     Serial.println(FreeRam());
+
+    menu = new Menu();
 
     auto dirReader = new DirReader(SDPIN);
     dirReader->setDirectory("/");

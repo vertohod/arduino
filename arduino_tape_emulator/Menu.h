@@ -1,22 +1,40 @@
 #ifndef MENU_H
 #define MENU_H
 
-#include "list.h"
+#include "Types.h"
+#include "IDataProvider.h"
+#include "string.h"
 
 class Menu
 {
 private:
-    IDataProvider* mDataProvider;
+    IDataProvider*  mDataProvider;
+    size_t          mLength;
 
 public:
-    setDataProvider(IDataProvider* provider) {
+    Menu() : mDataProvider(nullptr), mLength(0) {
+    }
+    Menu(IDataProvider* dataProvider) : mDataProvider(dataProvider), mLength(0) {
+    }
+    Menu(IDataProvider* dataProvider, size_t length) : mDataProvider(dataProvider), mLength(length) {
+        if (mDataProvider) {
+            mDataProvider->setSizeDataSet(mLength);
+        }
+    }
+    setDataProvider(IDataProvider* dataProvider) {
+        mDataProvider = dataProvider;
+        if (mDataProvider) {
+            mDataProvider->setSizeDataSet(mLength);
+        }
+    }
+    setLength(size_t length) {
+        mLength = length;
+        if (mDataProvider) {
+            mDataProvider->setSizeDataSet(mLength);
+        }
     }
 
-
-
-
-    void clean();
-    char* getChosenItem();
+    string getChosenItem();
 
 private:
     void stepUp();

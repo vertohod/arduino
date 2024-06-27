@@ -86,10 +86,10 @@ public:
     ~list() {
         delete mBegin;
     }
-    iterator& begin() {
+    iterator begin() {
         return *mBegin;
     }
-    iterator& end() {
+    iterator end() {
         return *mEnd;
     }
     void push(const T& value) {
@@ -119,8 +119,20 @@ public:
     size_t size() {
         return mSize;
     }
-    void splice(iterator position, list& otherList, iterator otherIt)
-    {
+    void splice(iterator position, list& otherList, iterator otherIt) {
+        // check if otherIt valid iterator
+        if (otherList.end() == otherIt) {
+            return;
+        }
+        auto it = otherList.begin();
+        while (it != otherList.end()) {
+            if (it == otherIt) {
+                break;
+            }
+        }
+        if (it != otherList.end()) {
+            return;
+        }
         // cut out an item
         if (otherList.begin() == otherIt) {
             otherList.mBegin = otherIt.mNext;
@@ -128,18 +140,36 @@ public:
         {
             auto prev = otherIt.mPrev;
             auto next = otherIt.mNext;
-            prev->mNext = otherIt.mNext;
-            next->mPrev = otherIt.mPrev;
+            prev->mNext = next;
+            next->mPrev = prev;
             otherList.mSize -= 1;
         }
         // insert into current list
         {
+            if (*mBegin == position) {
+                mBegin = otherIt.mCurrent;
+            }
             auto prev = position.mPrev;
             prev->mNext = otherIt.mCurrent;
             otherIt.mPrev = prev;
             otherIt.mNext = &position;
             position.mPrev = otherIt.mCurrent;
             ++mSize;
+        }
+    }
+    iterator erase(iterator position) {
+        if (position != *mEnd) {
+            if (*mBegin == position) {
+                mBegin = position.mNext;
+            }
+            auto prev = position.mPrev;
+            auto next = position.mNext;
+            prev->mNext = next;
+            next->mPrev = prev;
+            delete position.mCurrent;
+            return *next;
+        } else {
+            return *mEnd;
         }
     }
 };

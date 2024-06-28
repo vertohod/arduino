@@ -43,7 +43,7 @@ public:
         mScreen.println(text.c_str());
     }
 private:
-    void draw(const string& text, size_t position, bool active, bool fillAll = false, bool drawLine = false) {
+    void draw(const string& text, uint16_t position, bool active, bool fillAll = false, bool drawLine = false) {
         auto backColor = ILI9341_BLACK;
         auto textColor = ILI9341_LIGHTGREY;
         if (active) {
@@ -65,12 +65,12 @@ private:
     }
 public:
     uint16_t maxItems() override {
-        return mScreen.height() / mItemHeight;
+        return mScreen.height() / (mItemHeight + 2);
     }
-    void drawItem(const string& text, size_t position, bool active) override {
+    void drawItem(const string& text, uint16_t position, bool active) override {
         draw(text, position, active, true, true);
     }
-    void quickDrawItem(const string& text, size_t position, bool active, bool fillAll) override {
+    void quickDrawItem(const string& text, uint16_t position, bool active, bool fillAll) override {
         draw(text, position, active, fillAll);
     }
 };

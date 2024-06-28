@@ -13,7 +13,9 @@ public:
         iterator*   mCurrent;
 
     public:
-        iterator() : mPrev(nullptr), mNext(nullptr) {
+        iterator() {
+            mPrev = this;
+            mNext = this;
             mCurrent = this;
         }
         iterator(const iterator& obj) {
@@ -32,31 +34,31 @@ public:
         iterator& operator++() {
             mValue = mNext->mValue;
             mPrev = mNext->mPrev;
-            mNext = mNext->mNext;
             mCurrent = mNext->mCurrent;
+            mNext = mNext->mNext;
             return *this;
         }
         iterator operator++(int) {
             auto ret = *this;
             mValue = mNext->mValue;
             mPrev = mNext->mPrev;
-            mNext = mNext->mNext;
             mCurrent = mNext->mCurrent;
+            mNext = mNext->mNext;
             return ret;
         }
         iterator& operator--() {
             mValue = mPrev->mValue;
-            mPrev = mPrev->mPrev;
             mNext = mPrev->mNext;
             mCurrent = mPrev->mCurrent;
+            mPrev = mPrev->mPrev;
             return *this;
         }
         iterator operator--(int) {
             auto ret = *this;
             mValue = mPrev->mValue;
-            mPrev = mPrev->mPrev;
             mNext = mPrev->mNext;
             mCurrent = mPrev->mCurrent;
+            mPrev = mPrev->mPrev;
             return ret;
         }
         bool operator==(const iterator& obj) {
@@ -76,103 +78,102 @@ public:
 private:
     iterator*   mBegin;
     iterator*   mEnd;
-    size_t      mSize;
+    uint16_t    mSize;
 
 public:
     list() : mSize(0) {
         mEnd = new iterator();
         mBegin = mEnd;
     }
+
     ~list() {
-        delete mBegin;
+        clear();
+        delete mEnd;
     }
+
     iterator begin() {
         return *mBegin;
     }
+
     iterator end() {
         return *mEnd;
     }
+
     void push(const T& value) {
-        auto last = mEnd;
-        last->mValue = value;
-
-        mEnd = new iterator();
-        last->mNext = mEnd;
-        mEnd->mPrev = last;
-        mEnd->mNext = mBegin;
-
+        auto newItem = new iterator();
+        newItem->mValue = value;
+        newItem->mNext = mEnd;
+        newItem->mPrev = mEnd->mPrev;
+        newItem->mPrev->mNext = newItem;
+        mEnd->mPrev = newItem;
+        if (*mBegin == *mEnd) {
+            mBegin = newItem;
+        }
         ++mSize;
     }
-    void clear() {
-        auto last = mEnd;
-        mEnd = mBegin;
-        while (*mBegin != *last) {
-            auto prev = last->mPrev;
-            delete last;
-            last = prev;
-        }
-        last->mPrev = nullptr;
-        last->mNext = nullptr;
 
+    void clear() {
+        for (auto it = begin(); it != end();) {
+            auto eraseIt = it;
+            ++it;
+            delete eraseIt.mCurrent; 
+        }
+        mEnd->mPrev = mEnd->mCurrent;
+        mEnd->mNext = mEnd->mCurrent;
         mSize = 0;
     }
-    size_t size() {
+
+    uint16_t size() {
         return mSize;
     }
-    bool empty() {
-        return mSize == 0;
-    }
+
     void splice(iterator position, list& otherList, iterator otherIt) {
+        Serial.println(F("(splice)"));
         // check if otherIt valid iterator
         if (otherList.end() == otherIt) {
-            return;
-        }
-        auto it = otherList.begin();
-        while (it != otherList.end()) {
-            if (it == otherIt) {
-                break;
-            }
-        }
-        if (it != otherList.end()) {
+            Serial.println(F("(splice) otherList.end() == otherIt"));
             return;
         }
         // cut out an item
         if (otherList.begin() == otherIt) {
+            Serial.println(F("(splice) otherList.begin() == otherIt"));
             otherList.mBegin = otherIt.mNext;
         }
         {
-            auto prev = otherIt.mPrev;
-            auto next = otherIt.mNext;
-            prev->mNext = next;
-            next->mPrev = prev;
+            otherIt.mNext->mPrev = otherIt.mPrev;
+            otherIt.mPrev->mNext = otherIt.mNext;
             otherList.mSize -= 1;
+            Serial.print(F("(splice) otherList.mSize: "));
+            Serial.println(otherList.mSize);
         }
         // insert into current list
         {
             if (*mBegin == position) {
+                Serial.println(F("(splice) *mBegin == position"));
                 mBegin = otherIt.mCurrent;
             }
-            auto prev = position.mPrev;
-            prev->mNext = otherIt.mCurrent;
-            otherIt.mPrev = prev;
-            otherIt.mNext = &position;
-            position.mPrev = otherIt.mCurrent;
+            position.mPrev->mNext = otherIt.mCurrent;
+            otherIt.mCurrent->mPrev = position.mPrev;
+            otherIt.mCurrent->mNext = position.mCurrent;
+            position.mCurrent->mPrev = otherIt.mCurrent;
             ++mSize;
         }
     }
+
     iterator erase(iterator position) {
-        if (position != *mEnd) {
-            if (*mBegin == position) {
-                mBegin = position.mNext;
-            }
+        if (position == *mEnd) {
+            return *mEnd;
+        } else {
             auto prev = position.mPrev;
             auto next = position.mNext;
             prev->mNext = next;
             next->mPrev = prev;
+            if (*mBegin == position) {
+                mBegin = next;
+            }
             delete position.mCurrent;
+            --mSize;
             return *next;
-        } else {
-            return *mEnd;
         }
     }
 };

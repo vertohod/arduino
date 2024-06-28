@@ -17,9 +17,6 @@
 #define DURATION_PAUSE 2.0 // seconds
 #define TEXT_SIZE 2
 
-bool encoderInt0 = false;
-bool encoderInt1 = false;
-
 Menu *menu = nullptr;
 DirReader *dirReader = nullptr;
 MenuDrawer *menuDrawer = nullptr;
@@ -30,7 +27,7 @@ byte* buffer = new byte[BUFFER_SIZE];
 
 void setup()
 {
-    Serial.begin(9600);
+    Serial.begin(115200);
     Serial.print(F("RAM left: "));
     Serial.println(FreeRam());
 
@@ -39,7 +36,7 @@ void setup()
 
     // Enable INT0, INT1
     EICRA = 1 << ISC11 | 1 << ISC10 | 1 << ISC01 | 1 << ISC00;
-    EIMSK = 1 << INT0 | 1 << INT1;
+    EIMSK = 1 << INT1 | 1 << INT0;
 
     string path("/");
     dirReader = new DirReader(SD_CS);
@@ -69,7 +66,7 @@ double nextPeriod = 0.0;
 
 void startReading()
 {
-    size_t length = fileReader->getData(buffer, BUFFER_SIZE);
+    uint16_t length = fileReader->getData(buffer, BUFFER_SIZE);
     if (length > 0) {
         buffer = bh->fillBuffer(buffer, length);
         bh->start(fileReader->getBlockType());
@@ -84,31 +81,39 @@ void startReading()
     }
 }
 
+bool buttonIsClicked = false;
+
 void loop()
 {
     if (fileReader && bh) {
         if (!(fileReader->isPause())) {
             if (!(bh->isFinished()) && bh->isBufferEmpty()) {
-                size_t length = fileReader->getData(buffer, BUFFER_SIZE);
+                uint16_t length = fileReader->getData(buffer, BUFFER_SIZE);
                 if (length > 0) {
                     buffer = bh->fillBuffer(buffer, length);
                 }
             }
         }
     }
-    if (PIND & B00100000) {
-        if (menu) {
-            auto fileName = menu->getChosenItem();
-            delete menu;
-            menu = nullptr;
-            delete menuDrawer;
-            menuDrawer = nullptr;
-            delete dirReader;
-            dirReader = nullptr;
+    if (!(PIND & B00100000)) {
+        if (!buttonIsClicked) {
+            buttonIsClicked = true;
+            Serial.println(F("Click button"));
+            if (menu) {
+                auto fileName = menu->getChosenItem();
+                delete menu;
+                menu = nullptr;
+                delete menuDrawer;
+                menuDrawer = nullptr;
+                delete dirReader;
+                dirReader = nullptr;
 
-            loadFile(fileName);
-            startReading();
+                loadFile(string("/") + fileName);
+                startReading();
+            }
         }
+    } else {
+        buttonIsClicked = false;
     }
 }
 
@@ -148,6 +153,9 @@ ISR(TIMER1_COMPA_vect)
     sei();
 }
 
+volatile bool encoderInt0 = false;
+volatile bool encoderInt1 = false;
+
 ISR(INT0_vect)
 {
     cli();
@@ -155,9 +163,11 @@ ISR(INT0_vect)
         encoderInt1 = false;
         if (menu) {
             menu->stepUp();
+            encoderInt0 = false;
+            encoderInt1 = false;
         }
     } else {
-        encoderInt1 = true;
+        encoderInt0 = true;
     }
     sei();
 }
@@ -169,9 +179,11 @@ ISR(INT1_vect)
         encoderInt0 = false;
         if (menu) {
             menu->stepDn();
+            encoderInt0 = false;
+            encoderInt1 = false;
         }
     } else {
-        encoderInt0 = true;
+        encoderInt1 = true;
     }
     sei();
 }

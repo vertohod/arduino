@@ -10,8 +10,8 @@ private:
     File    mFile;
     byte    mBlockType;
     byte    mBlockTypeKnown;
-    volatile size_t  mBlockSize;
-    volatile size_t  mBlockRead;
+    volatile uint16_t  mBlockSize;
+    volatile uint16_t  mBlockRead;
 
     enum STATE {
         READING,
@@ -39,7 +39,7 @@ public:
         mFile.close();
     }
 
-    size_t getBlockSize()
+    uint16_t getBlockSize()
     {
         byte firstByte = 0;
         byte secondByte = 0;
@@ -53,7 +53,7 @@ public:
         return firstByte | secondByte << 8;
     }
 
-    size_t getData(byte *buffer, size_t buffer_size)
+    uint16_t getData(byte *buffer, uint16_t buffer_size)
     {
         if (mState != STATE::READING) return 0;
 
@@ -65,7 +65,7 @@ public:
             return 0;
         }
 
-        size_t counter = 0;
+        uint16_t counter = 0;
         for (; counter < buffer_size;) {
             if (!mFile.available()) {
                 mState = STATE::END;

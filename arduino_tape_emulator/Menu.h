@@ -33,16 +33,13 @@ public:
         , mUpVisiblePosition(0)
         , mDnPosition(0)
     {
-        if (mMenuDrawer) {
-            if (mDataProvider) {
-                mDataProvider->setSizeDataSet(mMenuDrawer->maxItems() - 1);
-                mVisibleBuffer = mDataProvider->next();
-                if (mVisibleBuffer) {
-                    mDnPosition = mVisibleBuffer->size();
-                }
-                draw();
-            }
+        mLength = mMenuDrawer->maxItems() - 1;
+        mDataProvider->setSizeDataSet(mLength);
+        mVisibleBuffer = mDataProvider->next();
+        if (mVisibleBuffer) {
+            mDnPosition = mVisibleBuffer->size();
         }
+        draw();
     }
 
     ~Menu() {
@@ -58,13 +55,13 @@ public:
     }
 
     string getChosenItem() {
-        size_t counter = 0;
+        uint16_t counter = 0;
         for (auto it = mVisibleBuffer->begin(); it != mVisibleBuffer->end(); ++it) {
             if (mCurrentPosition == counter) {
                 return *it;
             }
+            ++counter;
         }
-        ++counter;
         return string();
     }
 
@@ -72,8 +69,7 @@ public:
         if (mCurrentPosition > mLength / 2) {
             --mCurrentPosition;
             draw(true);
-        }
-        if (mCurrentPosition == mLength / 2) {
+        } else {
             if (!mUpBuffer) {
                 mUpBuffer = mDataProvider->prev();
             }
@@ -100,8 +96,7 @@ public:
         if (mCurrentPosition < mLength / 2) {
             ++mCurrentPosition;
             draw(true);
-        }
-        if (mCurrentPosition == mLength / 2) {
+        } else {
             if (!mDnBuffer) {
                 mDnBuffer = mDataProvider->next();
             }
@@ -110,6 +105,7 @@ public:
                 mDnBuffer = mDataProvider->next();
             }
             if (mDnBuffer && mDnBuffer->size() > 0) {
+                auto it = mVisibleBuffer->begin();
                 mVisibleBuffer->erase(mVisibleBuffer->begin());
                 mVisibleBuffer->splice(mVisibleBuffer->end(), *mDnBuffer, mDnBuffer->begin());
                 draw(true, true);
@@ -121,22 +117,8 @@ public:
     }
 private:
     void draw(bool quickDraw = false, bool superQuick = false) {
-        Serial.println(F("(Menu) call draw"));
-        if (mMenuDrawer == nullptr) {
-            Serial.println(F("(Menu) mMenuDrawer is nullptr"));
-            return;
-        }
-        if (mVisibleBuffer == nullptr) {
-            Serial.println(F("(Menu) mVisibleBuffer is nullptr"));
-            return;
-        }
-        if (mLength == 0) {
-            Serial.println(F("(Menu) mLength: 0"));
-            return;
-        }
-        size_t counter = 0;
+        uint16_t counter = 0;
         for (auto it = mVisibleBuffer->begin(); it != mVisibleBuffer->end(); ++it) {
-            Serial.println(it->c_str());
             if (quickDraw) {
                 mMenuDrawer->quickDrawItem(*it, counter, mCurrentPosition == counter, !superQuick);
             } else {

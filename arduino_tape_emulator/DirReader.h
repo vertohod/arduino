@@ -30,7 +30,6 @@ public:
     }
     void setDirectory(const string& path)
     {
-        Serial.println(F("(DirReader) call setDirectory"));
         mPaht = path;
     }
     tListString* readNext(uint8_t amount)

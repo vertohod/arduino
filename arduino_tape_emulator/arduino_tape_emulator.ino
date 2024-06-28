@@ -30,13 +30,17 @@ void setup()
 
     auto dirReader = new DirReader(SDPIN);
     dirReader->setDirectory(path);
+    Serial.print(F("label 1: "));
+    Serial.println(FreeRam());
     auto menuDrawer = new MenuDrawer(7, 9);
     menuDrawer->setHeader(path);
+    Serial.print(F("label 2: "));
+    Serial.println(FreeRam());
 
     menu = new Menu();
     menu->setMenuDrawer(menuDrawer);
     menu->setDataProvider(dirReader);
-    menu->setLength(6);
+    menu->setLength(9);
 
     delete menu;
     delete menuDrawer;

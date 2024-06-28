@@ -22,16 +22,18 @@ private:
 public:
     DirReader(uint8_t SDPin) : mPosition(0), mLastAmount(0), mSizeDataSet(0)
     {
-        Serial.println("Initializing SD card...");
+        Serial.println(F("(DirReader) Initializing SD card..."));
         if (!SD.begin(SDPin)) {
             while(true);
         }
+        Serial.println(F("(DirReader) SD card is initialized"));
     }
     ~DirReader()
     {
     }
     void setDirectory(const string& path)
     {
+        Serial.println(F("(DirReader) call setDirectory"));
         mPaht = path;
     }
     tListString* readNext(size_t amount)

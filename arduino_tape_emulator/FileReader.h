@@ -22,14 +22,14 @@ private:
     volatile STATE mState;
 
 public:
-    FileReader(uint8_t sdpin, char* file_name) :
+    FileReader(uint8_t sd_cs, char* file_name) :
         mBlockType(0),
         mBlockTypeKnown(false),
         mBlockSize(0),
         mBlockRead(0),
         mState(STATE::READING)
     {
-        if (!SD.begin(sdpin)) {
+        if (!SD.begin(sd_cs)) {
             while (1);
         }
         mFile = SD.open(file_name);

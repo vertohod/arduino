@@ -119,6 +119,9 @@ public:
     size_t size() {
         return mSize;
     }
+    bool empty() {
+        return mSize == 0;
+    }
     void splice(iterator position, list& otherList, iterator otherIt) {
         // check if otherIt valid iterator
         if (otherList.end() == otherIt) {

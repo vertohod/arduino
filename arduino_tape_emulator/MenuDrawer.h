@@ -18,8 +18,6 @@ private:
     Adafruit_ILI9341 mScreen;
     uint8_t mTopPosition;
     uint8_t mMargin;
-    uint16_t mWidth;
-    uint16_t mHeight;
     uint8_t mTextHeight;
     uint8_t mItemHeight;
 
@@ -33,46 +31,47 @@ public:
         mScreen.setTextColor(ILI9341_WHITE);
         mScreen.setTextSize(textSize);
 
-        mWidth = mScreen.width(),
-        mHeight = mScreen.height();
-
         mMargin = static_cast<uint8_t>(static_cast<float>(mTextHeight) * MARGIN_MUL);
         mItemHeight = mTextHeight + mMargin * 2;
         mTopPosition = mItemHeight + 1;
         Serial.println(F("(DMenuDrawer) construction is completed"));
     }
     void setHeader(const string& text) {
-        mScreen.fillRect(0, 0, mWidth, mTopPosition, ILI9341_BLACK);
+        mScreen.fillRect(0, 0, mScreen.width(), mTopPosition, ILI9341_BLACK);
         mScreen.setTextColor(ILI9341_WHITE);
         mScreen.setCursor(mMargin, mMargin);
         mScreen.println(text.c_str());
     }
-    void drawItem(const string& text, size_t position, bool active) override {
+private:
+    void draw(const string& text, size_t position, bool active, bool fillAll = false, bool drawLine = false) {
         auto backColor = ILI9341_BLACK;
         auto textColor = ILI9341_LIGHTGREY;
         if (active) {
             backColor = ILI9341_WHITE;
             textColor = ILI9341_BLACK;
         }
-        auto yPosition = mTopPosition + (mItemHeight + 1) * position;
-        mScreen.fillRect(0, yPosition, mWidth, mItemHeight, backColor);
-        mScreen.drawLine(mMargin, yPosition + mItemHeight, mWidth - mMargin, yPosition + mItemHeight, ILI9341_DARKGREY);
+        auto yPosition = mTopPosition + (mItemHeight + 2) * position;
+        if (fillAll) {
+            mScreen.fillRect(0, yPosition, mScreen.width(), mItemHeight, backColor);
+        } else {
+            mScreen.fillRect(mMargin, yPosition + mMargin, mScreen.width() - 2 * mMargin, mTextHeight, backColor);
+        }
+        if (drawLine) {
+            mScreen.drawLine(mMargin, yPosition + mItemHeight + 1, mScreen.width() - mMargin, yPosition + mItemHeight, ILI9341_DARKGREY);
+        }
         mScreen.setTextColor(textColor);
-        mScreen.setCursor(mMargin, yPosition + mMargin + 1);
+        mScreen.setCursor(mMargin, yPosition + mMargin + 2);
         mScreen.println(text.c_str());
     }
-    void quickDrawItem(const string& text, size_t position, bool active) override {
-        auto backColor = ILI9341_BLACK;
-        auto textColor = ILI9341_LIGHTGREY;
-        if (active) {
-            backColor = ILI9341_WHITE;
-            textColor = ILI9341_BLACK;
-        }
-        auto yPosition = mTopPosition + (mItemHeight + 1) * position;
-        mScreen.fillRect(mMargin, yPosition + mMargin, mWidth - 2 * mMargin, mTextHeight, backColor);
-        mScreen.setTextColor(textColor);
-        mScreen.setCursor(mMargin, yPosition + mMargin + 1);
-        mScreen.println(text.c_str());
+public:
+    uint16_t maxItems() override {
+        return mScreen.height() / mItemHeight;
+    }
+    void drawItem(const string& text, size_t position, bool active) override {
+        draw(text, position, active, true, true);
+    }
+    void quickDrawItem(const string& text, size_t position, bool active, bool fillAll) override {
+        draw(text, position, active, fillAll);
     }
 };
 

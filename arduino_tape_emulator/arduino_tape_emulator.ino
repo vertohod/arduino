@@ -12,6 +12,7 @@
 #define OUTPUTPIN 4
 #define BUFFER_SIZE 32
 #define DURATION_PAUSE 2.0 // seconds
+#define TEXT_SIZE 2
 
 BlockHandler *bh = nullptr;
 FileReader *reader = nullptr;
@@ -32,7 +33,7 @@ void setup()
     dirReader->setDirectory(path);
     Serial.print(F("label 1: "));
     Serial.println(FreeRam());
-    auto menuDrawer = new MenuDrawer(7, 9);
+    auto menuDrawer = new MenuDrawer(7, 9, TEXT_SIZE);
     menuDrawer->setHeader(path);
     Serial.print(F("label 2: "));
     Serial.println(FreeRam());

@@ -9,10 +9,9 @@ typedef list<string> tListString;
 class IDataProvider
 {
 public:
-    virtual void setSizeDataSet(size_t size);
+    virtual void setSizeDataSet(uint8_t size);
     virtual tListString* next();
     virtual tListString* prev();
-    virtual ~IDataProvider(){}
 };
 
 #endif

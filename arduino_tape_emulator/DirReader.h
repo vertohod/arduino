@@ -12,12 +12,12 @@ class DirReader : public IDataProvider
 {
 private:
     string          mPaht;
-    size_t          mPosition;
-    size_t          mLastAmount;
+    uint8_t         mPosition;
+    uint8_t         mLastAmount;
     File            mDirectory;
 
 // IDataProvider
-    size_t          mSizeDataSet;
+    uint8_t         mSizeDataSet;
 
 public:
     DirReader(uint8_t SDPin) : mPosition(0), mLastAmount(0), mSizeDataSet(0)
@@ -28,15 +28,12 @@ public:
         }
         Serial.println(F("(DirReader) SD card is initialized"));
     }
-    ~DirReader()
-    {
-    }
     void setDirectory(const string& path)
     {
         Serial.println(F("(DirReader) call setDirectory"));
         mPaht = path;
     }
-    tListString* readNext(size_t amount)
+    tListString* readNext(uint8_t amount)
     {
         if (!openDirectory()) {
             return nullptr;
@@ -53,7 +50,7 @@ public:
         closeDirectory();
         return result;
     }
-    tListString* readPrev(size_t amount)
+    tListString* readPrev(uint8_t amount)
     {
         if (!openDirectory()) {
             return nullptr;
@@ -74,7 +71,7 @@ public:
     }
 
 // IDataProvider
-    void setSizeDataSet(size_t size) override
+    void setSizeDataSet(uint8_t size) override
     {
         mSizeDataSet = size;
     }
@@ -97,8 +94,8 @@ private:
             mDirectory.close();
         }
     }
-    bool skipFiles(size_t amount) {
-        for (size_t i = 0; i < amount; ++i) {
+    bool skipFiles(uint8_t amount) {
+        for (uint8_t i = 0; i < amount; ++i) {
             auto file = mDirectory.openNextFile();
             if (!file) {
                 return false;
@@ -107,10 +104,10 @@ private:
         }
         return true;
     }
-    tListString* readFiles(size_t amount)
+    tListString* readFiles(uint8_t amount)
     {
         auto fileList = new tListString();
-        for (size_t i = 0; i < amount; ++i) {
+        for (uint8_t i = 0; i < amount; ++i) {
             auto file = mDirectory.openNextFile();
             if (!file) {
                 break;

@@ -11,18 +11,18 @@ class Menu
 private:
     IDataProvider*  mDataProvider;
     IMenuDrawer*    mMenuDrawer;
-    size_t          mLength;
-    size_t          mHalfLength;
+    uint8_t         mLength;
+    uint8_t         mHalfLength;
 
     tListString*    mUpBuffer;
     tListString*    mVisibleBuffer;
     tListString*    mDnBuffer;
 
-    size_t          mUpPosition;
-    size_t          mDnPosition;
-    size_t          mUpVisiblePosition;
-    size_t          mDnVisiblePosition;
-    size_t          mCurrentPosition;
+    uint8_t         mCurrentPosition;
+    uint16_t        mUpVisiblePosition;
+//  uint16_t        mDnVisiblePosition; // = mUpVisiblePosition + mLength;
+//  uint16_t        mUpPosition; // always 0
+    uint16_t        mDnPosition;
 
 public:
     Menu() : mDataProvider(nullptr)
@@ -32,10 +32,8 @@ public:
         , mUpBuffer(nullptr)
         , mVisibleBuffer(nullptr)
         , mDnBuffer(nullptr)
-        , mUpPosition(0)
         , mDnPosition(0)
         , mUpVisiblePosition(0)
-        , mDnVisiblePosition(0)
         , mCurrentPosition(0)
     {}
     /*
@@ -46,10 +44,8 @@ public:
         , mUpBuffer(nullptr)
         , mVisibleBuffer(nullptr)
         , mDnBuffer(nullptr)
-        , mUpPosition(0)
         , mDnPosition(0)
         , mUpVisiblePosition(0)
-        , mDnVisiblePosition(0)
         , mCurrentPosition(0)
     {}
     Menu(IDataProvider* dataProvider, size_t length) : mDataProvider(dataProvider)
@@ -59,18 +55,15 @@ public:
         , mUpBuffer(nullptr)
         , mVisibleBuffer(nullptr)
         , mDnBuffer(nullptr)
-        , mUpPosition(0)
         , mDnPosition(0)
         , mUpVisiblePosition(0)
-        , mDnVisiblePosition(0)
         , mCurrentPosition(0)
     {
         if (mDataProvider) {
             mDataProvider->setSizeDataSet(mLength);
             mVisibleBuffer = mDataProvider->next();
             if (mVisibleBuffer) {
-                mDnVisiblePosition = mVisibleBuffer->size();
-                mDnPosition = mDnVisiblePosition;
+                mDnPosition = mVisibleBuffer->size();
             }
             draw();
         }
@@ -88,33 +81,31 @@ public:
         }
     }
     setDataProvider(IDataProvider* dataProvider) {
-        Serial.println("(Menu) call setDataProvider");
+        Serial.println(F("(Menu) call setDataProvider"));
         mDataProvider = dataProvider;
         if (mDataProvider) {
             mDataProvider->setSizeDataSet(mLength);
             mVisibleBuffer = mDataProvider->next();
             if (mVisibleBuffer) {
-                mDnVisiblePosition = mVisibleBuffer->size();
-                mDnPosition = mDnVisiblePosition;
+                mDnPosition = mVisibleBuffer->size();
             }
             draw();
         }
     }
     setMenuDrawer(IMenuDrawer* menuDrawer) {
-        Serial.println("(Menu) call setMenuDrawer");
+        Serial.println(F("(Menu) call setMenuDrawer"));
         mMenuDrawer = menuDrawer;
         draw();
     }
     setLength(size_t length) {
-        Serial.println("(Menu) call setLength");
+        Serial.println(F("(Menu) call setLength"));
         mLength = length;
         mHalfLength = length / 2;
         if (mDataProvider) {
             mDataProvider->setSizeDataSet(mLength);
             mVisibleBuffer = mDataProvider->next();
             if (mVisibleBuffer) {
-                mDnVisiblePosition = mVisibleBuffer->size();
-                mDnPosition = mDnVisiblePosition;
+                mDnPosition = mVisibleBuffer->size();
             }
             draw();
         }
@@ -129,24 +120,24 @@ public:
         draw();
     }
     void draw() {
-        Serial.println("(Menu) call draw");
+        Serial.println(F("(Menu) call draw"));
         if (mMenuDrawer == nullptr) {
-            Serial.println("(Menu) mMenuDrawer is nullptr");
+            Serial.println(F("(Menu) mMenuDrawer is nullptr"));
             return;
         }
         if (mVisibleBuffer == nullptr) {
-            Serial.println("(Menu) mVisibleBuffer is nullptr");
+            Serial.println(F("(Menu) mVisibleBuffer is nullptr"));
             return;
         }
         if (mLength == 0) {
-            Serial.println("(Menu) mLength: 0");
+            Serial.println(F("(Menu) mLength: 0"));
             return;
         }
         size_t counter = 0;
         bool active = true;
         for (auto it = mVisibleBuffer->begin(); it != mVisibleBuffer->end(); ++it) {
             Serial.println(it->c_str());
-            mMenuDrawer->drawItem(*it, counter, active);
+            mMenuDrawer->quickDrawItem(*it, counter, active);
             ++counter;
             if (active) {
                 active = false;

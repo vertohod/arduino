@@ -12,6 +12,7 @@ public:
     virtual void setSizeDataSet(size_t size);
     virtual tListString* next();
     virtual tListString* prev();
+    virtual ~IDataProvider(){}
 };
 
 #endif

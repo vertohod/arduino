@@ -3,12 +3,14 @@
 
 #include "Types.h"
 #include "IDataProvider.h"
+#include "IMenuDrawer.h"
 #include "string.h"
 
 class Menu
 {
 private:
     IDataProvider*  mDataProvider;
+    IMenuDrawer*    mMenuDrawer;
     size_t          mLength;
     size_t          mHalfLength;
 
@@ -24,6 +26,7 @@ private:
 
 public:
     Menu() : mDataProvider(nullptr)
+        , mMenuDrawer(nullptr)
         , mLength(0)
         , mHalfLength(0)
         , mUpBuffer(nullptr)
@@ -36,6 +39,7 @@ public:
         , mCurrentPosition(0)
     {}
     Menu(IDataProvider* dataProvider) : mDataProvider(dataProvider)
+        , mMenuDrawer(nullptr)
         , mLength(0)
         , mHalfLength(0)
         , mUpBuffer(nullptr)
@@ -48,6 +52,7 @@ public:
         , mCurrentPosition(0)
     {}
     Menu(IDataProvider* dataProvider, size_t length) : mDataProvider(dataProvider)
+        , mMenuDrawer(nullptr)
         , mLength(length)
         , mHalfLength(length / 2)
         , mUpBuffer(nullptr)
@@ -69,6 +74,17 @@ public:
             draw();
         }
     }
+    ~Menu() {
+        if (mUpBuffer) {
+            delete mUpBuffer;
+        }
+        if (mVisibleBuffer) {
+            delete mVisibleBuffer;
+        }
+        if (mDnBuffer) {
+            delete mDnBuffer;
+        }
+    }
     setDataProvider(IDataProvider* dataProvider) {
         mDataProvider = dataProvider;
         if (mDataProvider) {
@@ -80,6 +96,10 @@ public:
             }
             draw();
         }
+    }
+    setMenuDrawer(IMenuDrawer* menuDrawer) {
+        mMenuDrawer = menuDrawer;
+        draw();
     }
     setLength(size_t length) {
         mLength = length;
@@ -104,6 +124,21 @@ public:
         draw();
     }
     void draw() {
+        if (mMenuDrawer == nullptr) {
+            return;
+        }
+        if (mVisibleBuffer == nullptr) {
+            return;
+        }
+        size_t counter = 0;
+        bool active = true;
+        for (auto it = mVisibleBuffer->begin(); it != mVisibleBuffer->end(); ++it) {
+            mMenuDrawer->drawItem(*it, counter, active);
+            ++counter;
+            if (active) {
+                active = false;
+            }
+        }
     }
 };
 

@@ -30,7 +30,7 @@ public:
     ~DirReader()
     {
     }
-    void setDirectory(const char* path)
+    void setDirectory(const string& path)
     {
         mPaht = path;
     }

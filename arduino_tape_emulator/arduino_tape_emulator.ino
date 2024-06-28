@@ -4,6 +4,7 @@
 #include "BlockHandler.h"
 #include "FileReader.h"
 #include "DirReader.h"
+#include "MenuDrawer.h"
 #include "Timer1.h"
 #include "Menu.h"
 
@@ -25,17 +26,20 @@ void setup()
     Serial.print(F("RAM left: "));
     Serial.println(FreeRam());
 
-    menu = new Menu();
+    string path("/");
 
     auto dirReader = new DirReader(SDPIN);
-    dirReader->setDirectory("/");
-    auto fileList = dirReader->readNext(5);
-    if (fileList != nullptr) {
-        for (auto it = fileList->begin(); it != fileList->end(); ++it) {
-            Serial.println(it->c_str());
-        }
-    }
-    delete fileList;
+    dirReader->setDirectory(path);
+    auto menuDrawer = new MenuDrawer(7, 9);
+    menuDrawer->setHeader(path);
+
+    menu = new Menu();
+    menu->setMenuDrawer(menuDrawer);
+    menu->setDataProvider(dirReader);
+    menu->setLength(6);
+
+    delete menu;
+    delete menuDrawer;
     delete dirReader;
 
     Serial.print(F("In the end: "));

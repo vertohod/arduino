@@ -4,9 +4,9 @@
 class string
 {
 private:
-    char* mData;
-    uint16_t mLength;
-    uint16_t mCapacity;
+    char*  mData;
+    size_t mLength;
+    size_t mCapacity;
 
 public:
     string() : mData(nullptr), mLength(0), mCapacity(0) {}
@@ -44,7 +44,7 @@ public:
     const char* c_str() {
         return mData;
     }
-    uint16_t length() {
+    size_t length() {
         return mLength;
     }
     bool empty() {
@@ -58,26 +58,26 @@ public:
     }
 
 private:
-    uint16_t strlen(char* str) {
+    size_t strlen(char* str) {
         if (nullptr == str) {
             return 0;
         }
-        uint16_t i = 0;
+        size_t i = 0;
         while (str[i] != 0) {
             ++i;
         }
         return i;
     }
-    void memcpy(char* source, char* dist, uint16_t len) {
-        for (uint16_t i = 0; i < len; ++i) {
+    void memcpy(char* source, char* dist, size_t len) {
+        for (size_t i = 0; i < len; ++i) {
             dist[i] = source[i];
         }
     }
-    void resize(uint16_t size) {
+    void resize(size_t size) {
         if ((size + 1) > mCapacity) {
             mCapacity = size + 1;
             char* temp = new char[mCapacity];
-            if (mData) {
+            if (nullptr != mData) {
                 memcpy(mData, temp, mLength + 1);
                 delete[] mData;
             }

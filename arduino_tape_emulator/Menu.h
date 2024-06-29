@@ -12,10 +12,10 @@ private:
     IDataProvider*  mDataProvider;
     IMenuDrawer*    mMenuDrawer;
     uint8_t         mLength;
+    bool            mLastDirectionUp;
 
-    tListString*    mUpBuffer;
     tListString*    mVisibleBuffer;
-    tListString*    mDnBuffer;
+    tListString*    mAddBuffer;
 
     uint8_t         mCurrentPosition;
     uint16_t        mUpVisiblePosition;
@@ -26,9 +26,9 @@ public:
         : mDataProvider(dataProvider)
         , mMenuDrawer(menuDrawer)
         , mLength(0)
-        , mUpBuffer(nullptr)
+        , mLastDirectionUp(false)
         , mVisibleBuffer(nullptr)
-        , mDnBuffer(nullptr)
+        , mAddBuffer(nullptr)
         , mCurrentPosition(0)
         , mUpVisiblePosition(0)
         , mDnPosition(0)
@@ -43,14 +43,11 @@ public:
     }
 
     ~Menu() {
-        if (mUpBuffer) {
-            delete mUpBuffer;
-        }
         if (mVisibleBuffer) {
             delete mVisibleBuffer;
         }
-        if (mDnBuffer) {
-            delete mDnBuffer;
+        if (mAddBuffer) {
+            delete mAddBuffer;
         }
     }
 
@@ -70,26 +67,19 @@ public:
             --mCurrentPosition;
             draw(true);
         } else {
-            if (!mUpBuffer) {
-                mUpBuffer = mDataProvider->prev();
+            if (!mLastDirectionUp) {
+                deleteAddBuffer();
             }
-            if (mUpBuffer && mUpBuffer->size() == 0) {
-                delete mUpBuffer;
-                mUpBuffer = mDataProvider->prev();
-            }
-            if (mUpBuffer && mUpBuffer->size() > 0) {
-                auto it = mVisibleBuffer->end();
-                --it;
-                mVisibleBuffer->erase(it);
-                auto moveIt = mUpBuffer->end();
-                --moveIt;
-                mVisibleBuffer->splice(mVisibleBuffer->begin(), *mUpBuffer, moveIt);
+            if (loadBufferAndSplice(true)) {
                 draw(true, true);
-            } else if (mCurrentPosition > 0) {
-                --mCurrentPosition;
+            } else {
+                if (mCurrentPosition > 0) {
+                    --mCurrentPosition;
+                }
                 draw(true);
             }
         }
+        mLastDirectionUp = true;
     }
 
     void stepDn() {
@@ -97,24 +87,21 @@ public:
             ++mCurrentPosition;
             draw(true);
         } else {
-            if (!mDnBuffer) {
-                mDnBuffer = mDataProvider->next();
+            if (mLastDirectionUp) {
+                deleteAddBuffer();
             }
-            if (mDnBuffer && mDnBuffer->size() == 0) {
-                delete mDnBuffer;
-                mDnBuffer = mDataProvider->next();
-            }
-            if (mDnBuffer && mDnBuffer->size() > 0) {
-                auto it = mVisibleBuffer->begin();
-                mVisibleBuffer->erase(mVisibleBuffer->begin());
-                mVisibleBuffer->splice(mVisibleBuffer->end(), *mDnBuffer, mDnBuffer->begin());
+            if (loadBufferAndSplice(false)) {
                 draw(true, true);
-            } else if (mCurrentPosition < (mLength - 1)) {
-                ++mCurrentPosition;
+            } else {
+                if (mCurrentPosition < mLength) {
+                    ++mCurrentPosition;
+                }
                 draw(true);
             }
         }
+        mLastDirectionUp = false;
     }
+
 private:
     void draw(bool quickDraw = false, bool superQuick = false) {
         uint16_t counter = 0;
@@ -125,6 +112,46 @@ private:
                 mMenuDrawer->drawItem(*it, counter, mCurrentPosition == counter);
             }
             ++counter;
+        }
+    }
+
+    bool loadBufferAndSplice(bool up) {
+        if (nullptr == mAddBuffer) {
+            mAddBuffer = mDataProvider->next();
+        }
+        if (nullptr != mAddBuffer && mAddBuffer->size() == 0) {
+            deleteAddBuffer();
+            if (up) {
+                mAddBuffer = mDataProvider->prev();
+            } else {
+                mAddBuffer = mDataProvider->next();
+            }
+        }
+        if (nullptr != mAddBuffer && mAddBuffer->size() > 0) {
+            auto positionIt = mVisibleBuffer->begin();
+            auto eraseIt = mVisibleBuffer->end();
+            auto moveIt = mAddBuffer->end();
+            if (up) {
+                eraseIt = mVisibleBuffer->findPrev(eraseIt);
+                moveIt = mAddBuffer->findPrev(moveIt);
+            } else {
+                positionIt = mVisibleBuffer->end();
+                eraseIt = mVisibleBuffer->begin();
+                moveIt = mAddBuffer->begin();
+                Serial.print(F("moveIt: "));
+                Serial.println(moveIt->c_str());
+            }
+            mVisibleBuffer->erase(eraseIt);
+            mVisibleBuffer->splice(positionIt, *mAddBuffer, moveIt);
+            return true;
+        }
+        return false;
+    }
+
+    void deleteAddBuffer() {
+        if (nullptr != mAddBuffer) {
+            delete mAddBuffer;
+            mAddBuffer = nullptr;
         }
     }
 };

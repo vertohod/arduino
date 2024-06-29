@@ -8,63 +8,34 @@ public:
     friend list;
     private:
         T mValue;
-        iterator*   mPrev;
-        iterator*   mNext;
-        iterator*   mCurrent;
+        iterator* mNext;
 
     public:
-        iterator() {
-            mPrev = this;
-            mNext = this;
-            mCurrent = this;
-        }
+        iterator() : mNext(nullptr) {}
         iterator(const iterator& obj) {
             mValue = obj.mValue;
-            mPrev = obj.mPrev;
             mNext = obj.mNext;
-            mCurrent = obj.mCurrent;
         }
         iterator& operator=(const iterator& obj) {
             mValue = obj.mValue;
-            mPrev = obj.mPrev;
             mNext = obj.mNext;
-            mCurrent = obj.mCurrent;
             return *this;
         }
         iterator& operator++() {
             mValue = mNext->mValue;
-            mPrev = mNext->mPrev;
-            mCurrent = mNext->mCurrent;
             mNext = mNext->mNext;
             return *this;
         }
         iterator operator++(int) {
             auto ret = *this;
             mValue = mNext->mValue;
-            mPrev = mNext->mPrev;
-            mCurrent = mNext->mCurrent;
             mNext = mNext->mNext;
             return ret;
         }
-        iterator& operator--() {
-            mValue = mPrev->mValue;
-            mNext = mPrev->mNext;
-            mCurrent = mPrev->mCurrent;
-            mPrev = mPrev->mPrev;
-            return *this;
+        bool operator==(const iterator& obj) const {
+            return mNext == obj.mNext;
         }
-        iterator operator--(int) {
-            auto ret = *this;
-            mValue = mPrev->mValue;
-            mNext = mPrev->mNext;
-            mCurrent = mPrev->mCurrent;
-            mPrev = mPrev->mPrev;
-            return ret;
-        }
-        bool operator==(const iterator& obj) {
-            return mCurrent == obj.mCurrent;
-        }
-        bool operator!=(const iterator& obj) {
+        bool operator!=(const iterator& obj) const {
             return !(*this == obj); 
         }
         T& operator*() {
@@ -78,7 +49,7 @@ public:
 private:
     iterator*   mBegin;
     iterator*   mEnd;
-    uint16_t    mSize;
+    size_t      mSize;
 
 public:
     list() : mSize(0) {
@@ -95,86 +66,103 @@ public:
         return *mBegin;
     }
 
-    iterator end() {
+    const iterator& end() {
         return *mEnd;
     }
 
     void push(const T& value) {
-        auto newItem = new iterator();
-        newItem->mValue = value;
-        newItem->mNext = mEnd;
-        newItem->mPrev = mEnd->mPrev;
-        newItem->mPrev->mNext = newItem;
-        mEnd->mPrev = newItem;
-        if (*mBegin == *mEnd) {
-            mBegin = newItem;
-        }
+        auto last = mEnd;
+        mEnd = new iterator();
+        last->mValue = value;
+        last->mNext = mEnd;
         ++mSize;
     }
 
-    void clear() {
-        for (auto it = begin(); it != end();) {
-            auto eraseIt = it;
-            ++it;
-            delete eraseIt.mCurrent; 
+    const iterator& insert(const iterator position, const T& value) {
+        auto newItem = new iterator();
+        newItem->mValue = value;
+        if (*mBegin == position) {
+            newItem->mNext = mBegin;
+            mBegin = newItem;
+            return *mBegin;
+        } else {
+            auto prev = findPrevPtr(position);
+            newItem->mNext = prev->mNext;
+            prev->mNext = newItem;
+            return *newItem;
         }
-        mEnd->mPrev = mEnd->mCurrent;
-        mEnd->mNext = mEnd->mCurrent;
+    }
+
+    void clear() {
+        auto itPtr = mBegin;
+        while (*itPtr != *mEnd) {
+            auto nextIt = itPtr->mNext;
+            delete itPtr;
+            itPtr = nextIt;
+        }
+        mBegin = mEnd;
         mSize = 0;
     }
 
-    uint16_t size() {
+    size_t size() {
         return mSize;
     }
 
     void splice(iterator position, list& otherList, iterator otherIt) {
-        Serial.println(F("(splice)"));
-        // check if otherIt valid iterator
-        if (otherList.end() == otherIt) {
-            Serial.println(F("(splice) otherList.end() == otherIt"));
-            return;
-        }
-        // cut out an item
-        if (otherList.begin() == otherIt) {
-            Serial.println(F("(splice) otherList.begin() == otherIt"));
-            otherList.mBegin = otherIt.mNext;
-        }
-        {
-            otherIt.mNext->mPrev = otherIt.mPrev;
-            otherIt.mPrev->mNext = otherIt.mNext;
-            otherList.mSize -= 1;
-            Serial.print(F("(splice) otherList.mSize: "));
-            Serial.println(otherList.mSize);
-        }
-        // insert into current list
-        {
-            if (*mBegin == position) {
-                Serial.println(F("(splice) *mBegin == position"));
-                mBegin = otherIt.mCurrent;
+        insert(position, *otherIt);
+        otherList.erase(otherIt);
+    }
+
+    const iterator& erase(const iterator position) {
+        Serial.println(F("(erase)"));
+        if (position == *mEnd) {
+            Serial.println(F("(erase) position == *mEnd"));
+            return *mEnd;
+        } else {
+            if (position == *mBegin) {
+                Serial.println(F("(erase) position == *mBegin"));
+                delete mBegin;
+                mBegin = position.mNext;
+            } else {
+                auto prev = findPrevPtr(position); 
+                if (*prev != *mEnd) {
+                    Serial.println(F("(erase) *prev != *mEnd"));
+                    delete prev->mNext;
+                    prev->mNext = position.mNext;
+                }
             }
-            position.mPrev->mNext = otherIt.mCurrent;
-            otherIt.mCurrent->mPrev = position.mPrev;
-            otherIt.mCurrent->mNext = position.mCurrent;
-            position.mCurrent->mPrev = otherIt.mCurrent;
-            ++mSize;
+            --mSize;
+            return *(position.mNext);
         }
     }
 
-    iterator erase(iterator position) {
-        if (position == *mEnd) {
-            return *mEnd;
-        } else {
-            auto prev = position.mPrev;
-            auto next = position.mNext;
-            prev->mNext = next;
-            next->mPrev = prev;
-            if (*mBegin == position) {
-                mBegin = next;
+    const iterator& findPrev(const iterator& position) {
+        return *findPrevPtr(position);
+    }
+
+private:
+    iterator* findPrevPtr(const iterator& position) {
+        auto itPtr = mBegin;
+        while (*itPtr != *mEnd) {
+            auto nextIt = itPtr->mNext;
+            if (*nextIt == position) {
+                return nextIt;
             }
-            delete position.mCurrent;
-            --mSize;
-            return *next;
+            itPtr = nextIt;
         }
+        return mEnd;
+    }
+
+    void insertPtr(const iterator& position, iterator* ptr) {
+        if (*mBegin == position) {
+            ptr->mNext = mBegin->mNext;
+            mBegin = ptr;
+        } else {
+            auto prev = findPrevPtr(position);
+            ptr->mNext = prev->mNext;
+            prev->mNext = ptr;
+        }
+        ++mSize;
     }
 };
 

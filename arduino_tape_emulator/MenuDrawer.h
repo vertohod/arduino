@@ -57,7 +57,7 @@ private:
             mScreen.fillRect(mMargin, yPosition + mMargin, mScreen.width() - 2 * mMargin, mTextHeight, backColor);
         }
         if (drawLine) {
-            mScreen.drawLine(mMargin, yPosition + mItemHeight + 1, mScreen.width() - mMargin, yPosition + mItemHeight, ILI9341_DARKGREY);
+            mScreen.drawLine(mMargin, yPosition + mItemHeight + 1, mScreen.width() - mMargin, yPosition + mItemHeight + 1, ILI9341_DARKGREY);
         }
         mScreen.setTextColor(textColor);
         mScreen.setCursor(mMargin, yPosition + mMargin + 2);

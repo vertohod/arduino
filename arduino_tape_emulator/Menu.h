@@ -12,47 +12,35 @@ private:
     IDataProvider*  mDataProvider;
     IMenuDrawer*    mMenuDrawer;
     uint8_t         mLength;
-    bool            mLastDirectionUp;
-
-    tListString*    mVisibleBuffer;
-    tListString*    mAddBuffer;
-
     uint8_t         mCurrentPosition;
     uint16_t        mUpVisiblePosition;
-    uint16_t        mDnPosition;
+
+    tListString*    mVisibleBuffer;
 
 public:
     Menu(IDataProvider* dataProvider, IMenuDrawer* menuDrawer)
         : mDataProvider(dataProvider)
         , mMenuDrawer(menuDrawer)
         , mLength(0)
-        , mLastDirectionUp(false)
         , mVisibleBuffer(nullptr)
-        , mAddBuffer(nullptr)
         , mCurrentPosition(0)
         , mUpVisiblePosition(0)
-        , mDnPosition(0)
     {
         mLength = mMenuDrawer->maxItems() - 1;
         mDataProvider->setSizeDataSet(mLength);
-        mVisibleBuffer = mDataProvider->next();
-        if (mVisibleBuffer) {
-            mDnPosition = mVisibleBuffer->size();
-        }
+        mVisibleBuffer = mDataProvider->getData(0);
         draw();
     }
 
     ~Menu() {
-        if (mVisibleBuffer) {
-            delete mVisibleBuffer;
-        }
-        if (mAddBuffer) {
-            delete mAddBuffer;
-        }
+        deleteBuffer();
     }
 
     string getChosenItem() {
         uint16_t counter = 0;
+        if (nullptr == mVisibleBuffer) {
+            return string();
+        }
         for (auto it = mVisibleBuffer->begin(); it != mVisibleBuffer->end(); ++it) {
             if (mCurrentPosition == counter) {
                 return *it;
@@ -63,48 +51,47 @@ public:
     }
 
     void stepUp() {
-        if (mCurrentPosition > mLength / 2) {
+        if (mCurrentPosition > 0) {
             --mCurrentPosition;
             draw(true);
         } else {
-            if (!mLastDirectionUp) {
-                deleteAddBuffer();
+            if (mUpVisiblePosition > 0) {
+                mUpVisiblePosition -= mLength;
+                mCurrentPosition = mLength - 1;
+                deleteBuffer();
+                mVisibleBuffer = mDataProvider->getData(mUpVisiblePosition);
             }
-            if (loadBufferAndSplice(true)) {
-                draw(true, true);
-            } else {
-                if (mCurrentPosition > 0) {
-                    --mCurrentPosition;
-                }
-                draw(true);
-            }
+            draw(true, true);
         }
-        mLastDirectionUp = true;
     }
 
     void stepDn() {
-        if (mCurrentPosition < mLength / 2) {
+        if (mCurrentPosition < mLength - 1) {
             ++mCurrentPosition;
             draw(true);
         } else {
-            if (mLastDirectionUp) {
-                deleteAddBuffer();
+            deleteBuffer();
+            mVisibleBuffer = mDataProvider->getData(mUpVisiblePosition + mLength);
+            if (nullptr == mVisibleBuffer) {
+                return;
             }
-            if (loadBufferAndSplice(false)) {
-                draw(true, true);
+            if (mVisibleBuffer->empty()) {
+                deleteBuffer();
+                mVisibleBuffer = mDataProvider->getData(mUpVisiblePosition);
             } else {
-                if (mCurrentPosition < mLength) {
-                    ++mCurrentPosition;
-                }
-                draw(true);
+                mUpVisiblePosition += mLength;
+                mCurrentPosition = 0;
             }
+            draw(true, true);
         }
-        mLastDirectionUp = false;
     }
 
 private:
     void draw(bool quickDraw = false, bool superQuick = false) {
         uint16_t counter = 0;
+        if (nullptr == mVisibleBuffer) {
+            return;
+        }
         for (auto it = mVisibleBuffer->begin(); it != mVisibleBuffer->end(); ++it) {
             if (quickDraw) {
                 mMenuDrawer->quickDrawItem(*it, counter, mCurrentPosition == counter, !superQuick);
@@ -115,43 +102,10 @@ private:
         }
     }
 
-    bool loadBufferAndSplice(bool up) {
-        if (nullptr == mAddBuffer) {
-            mAddBuffer = mDataProvider->next();
-        }
-        if (nullptr != mAddBuffer && mAddBuffer->size() == 0) {
-            deleteAddBuffer();
-            if (up) {
-                mAddBuffer = mDataProvider->prev();
-            } else {
-                mAddBuffer = mDataProvider->next();
-            }
-        }
-        if (nullptr != mAddBuffer && mAddBuffer->size() > 0) {
-            auto positionIt = mVisibleBuffer->begin();
-            auto eraseIt = mVisibleBuffer->end();
-            auto moveIt = mAddBuffer->end();
-            if (up) {
-                eraseIt = mVisibleBuffer->findPrev(eraseIt);
-                moveIt = mAddBuffer->findPrev(moveIt);
-            } else {
-                positionIt = mVisibleBuffer->end();
-                eraseIt = mVisibleBuffer->begin();
-                moveIt = mAddBuffer->begin();
-                Serial.print(F("moveIt: "));
-                Serial.println(moveIt->c_str());
-            }
-            mVisibleBuffer->erase(eraseIt);
-            mVisibleBuffer->splice(positionIt, *mAddBuffer, moveIt);
-            return true;
-        }
-        return false;
-    }
-
-    void deleteAddBuffer() {
-        if (nullptr != mAddBuffer) {
-            delete mAddBuffer;
-            mAddBuffer = nullptr;
+    void deleteBuffer() {
+        if (nullptr != mVisibleBuffer) {
+            delete mVisibleBuffer;
+            mVisibleBuffer = nullptr;
         }
     }
 };

@@ -12,15 +12,11 @@ class DirReader : public IDataProvider
 {
 private:
     string          mPaht;
-    uint8_t         mPosition;
-    uint8_t         mLastAmount;
     File            mDirectory;
-
-// IDataProvider
     uint8_t         mSizeDataSet;
 
 public:
-    DirReader(uint8_t SDPin) : mPosition(0), mLastAmount(0), mSizeDataSet(0)
+    DirReader(uint8_t SDPin) : mSizeDataSet(0)
     {
         Serial.println(F("(DirReader) Initializing SD card..."));
         if (!SD.begin(SDPin)) {
@@ -32,39 +28,16 @@ public:
     {
         mPaht = path;
     }
-    tListString* readNext(uint8_t amount)
+    tListString* read(uint16_t position)
     {
         if (!openDirectory()) {
             return nullptr;
         }
-        if (!skipFiles(mPosition)) {
-            closeDirectory();
-            return nullptr;
-        }
-        auto result = readFiles(amount);
-        if (result) {
-            mLastAmount = result->size();
-            mPosition += mLastAmount;
-        }
-        closeDirectory();
-        return result;
-    }
-    tListString* readPrev(uint8_t amount)
-    {
-        if (!openDirectory()) {
-            return nullptr;
-        }
-        auto diff = min(mPosition, mLastAmount + amount);
-        auto position = mPosition - diff;
         if (!skipFiles(position)) {
             closeDirectory();
             return nullptr;
         }
-        auto result = readFiles(amount);
-        if (result) {
-            mLastAmount = result->size();
-            mPosition = position + mLastAmount;
-        }
+        auto result = readFiles(mSizeDataSet);
         closeDirectory();
         return result;
     }
@@ -74,13 +47,9 @@ public:
     {
         mSizeDataSet = size;
     }
-    tListString* next() override
+    tListString* getData(uint16_t position) override
     {
-        return readNext(mSizeDataSet);
-    }
-    tListString* prev() override
-    {
-        return readPrev(mSizeDataSet);
+        return read(position);
     }
 
 private:
@@ -106,6 +75,10 @@ private:
     tListString* readFiles(uint8_t amount)
     {
         auto fileList = new tListString();
+        if (nullptr == fileList) {
+            Serial.print(F("DirReader::readFiles, fileList is nullptr"));
+            return nullptr;
+        }
         for (uint8_t i = 0; i < amount; ++i) {
             auto file = mDirectory.openNextFile();
             if (!file) {

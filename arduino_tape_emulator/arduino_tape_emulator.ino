@@ -17,19 +17,19 @@
 #define DURATION_PAUSE 2.0 // seconds
 #define TEXT_SIZE 2
 
+string currentDirectory("/");
 Menu *menu = nullptr;
-DirReader *dirReader = nullptr;
-MenuDrawer *menuDrawer = nullptr;
 FileReader *fileReader = nullptr;
-BlockHandler *bh = nullptr;
+BlockHandler *blockHandler = nullptr;
+volatile byte* dataBuffer = nullptr;
 
-byte* buffer = new byte[BUFFER_SIZE];
-
-void setup()
-{
+void setup() {
     Serial.begin(115200);
+    Serial.println(F("******** setup *********"));
     Serial.print(F("RAM left: "));
     Serial.println(FreeRam());
+
+    dataBuffer = new byte[BUFFER_SIZE]; // never free;
 
     // Enable output to port D
     DDRD = B00010000;
@@ -38,26 +38,13 @@ void setup()
     EICRA = 1 << ISC11 | 1 << ISC10 | 1 << ISC01 | 1 << ISC00;
     EIMSK = 1 << INT1 | 1 << INT0;
 
-    string path("/");
-    dirReader = new DirReader(SD_CS);
-    dirReader->setDirectory(path);
-    menuDrawer = new MenuDrawer(TFT_CS, TFT_DC, TEXT_SIZE);
-    menuDrawer->setHeader(path);
-    menu = new Menu(dirReader, menuDrawer);
-
-    Serial.print(F("In the end: "));
-    Serial.println(FreeRam());
+    showMenu(currentDirectory);
 }
 
 void loadFile(const string& path)
 {
-    pinMode(LED_BUILTIN, OUTPUT);
-    digitalWrite(LED_BUILTIN, HIGH);
-
-    fileReader = new FileReader(SD_CS, path.c_str());
-    bh = new BlockHandler(BUFFER_SIZE);
-
-    digitalWrite(LED_BUILTIN, LOW);
+    fileReader = new FileReader(SD_CS, path);
+    blockHandler = new BlockHandler(BUFFER_SIZE);
 }
 
 DurationCounter dc;
@@ -66,14 +53,16 @@ double nextPeriod = 0.0;
 
 void startReading()
 {
-    uint16_t length = fileReader->getData(buffer, BUFFER_SIZE);
+    size_t length = fileReader->getData(dataBuffer, BUFFER_SIZE);
+    Serial.print(F("(startReading) length: "));
+    Serial.println(length);
     if (length > 0) {
-        buffer = bh->fillBuffer(buffer, length);
-        bh->start(fileReader->getBlockType());
+        dataBuffer = blockHandler->fillBuffer(dataBuffer, length);
+        blockHandler->start(fileReader->getBlockType());
 
         // initialization
-        nextLevelUp = bh->getLevel();
-        nextPeriod = bh->getPeriod();
+        nextLevelUp = blockHandler->getLevel();
+        nextPeriod = blockHandler->getPeriod();
 
         // just launch the process with some period
         Timer1::instance().init(nextPeriod);
@@ -85,35 +74,90 @@ bool buttonIsClicked = false;
 
 void loop()
 {
-    if (fileReader && bh) {
+    if (nullptr != fileReader && nullptr != blockHandler) {
         if (!(fileReader->isPause())) {
-            if (!(bh->isFinished()) && bh->isBufferEmpty()) {
-                uint16_t length = fileReader->getData(buffer, BUFFER_SIZE);
+            if (!(blockHandler->isFinished()) && blockHandler->isBufferEmpty()) {
+                size_t length = fileReader->getData(dataBuffer, BUFFER_SIZE);
                 if (length > 0) {
-                    buffer = bh->fillBuffer(buffer, length);
+                    dataBuffer = blockHandler->fillBuffer(dataBuffer, length);
                 }
             }
+        }
+        if (fileReader->isFinished() && blockHandler->isFinished()) {
+            delete fileReader;
+            fileReader = nullptr;
+            delete blockHandler;
+            blockHandler = nullptr;
+            showMenu(currentDirectory);
         }
     }
     if (!(PIND & B00100000)) {
         if (!buttonIsClicked) {
             buttonIsClicked = true;
-            Serial.println(F("Click button"));
-            if (menu) {
-                auto fileName = menu->getChosenItem();
-                delete menu;
-                menu = nullptr;
-                delete menuDrawer;
-                menuDrawer = nullptr;
-                delete dirReader;
-                dirReader = nullptr;
-
-                loadFile(string("/") + fileName);
-                startReading();
-            }
+            clickHandler();
         }
     } else {
         buttonIsClicked = false;
+    }
+}
+
+void showMenu(const string& path) {
+    auto dirReader = new DirReader(SD_CS);
+    dirReader->setDirectory(path);
+    auto menuDrawer = new MenuDrawer(TFT_CS, TFT_DC, TEXT_SIZE);
+    menuDrawer->setHeader(path);
+    menu = new Menu(dirReader, menuDrawer);
+    Serial.print(F("RAM left: "));
+    Serial.println(FreeRam());
+}
+
+void removeMenu() {
+    if (menu) {
+        delete menu;
+        menu = nullptr;
+        Serial.print(F("RAM left: "));
+        Serial.println(FreeRam());
+    }
+}
+
+void clickHandler() {
+    if (nullptr != menu) {
+        auto directory = menu->getDirectory();
+        auto fileName = menu->getChosenItem();
+        Serial.print(F("(clickHandler) fileName: "));
+        Serial.println(fileName.c_str());
+        removeMenu(); // free memory
+        if (fileName == string("..")) {
+            Serial.println(F("(clickHandler) this is two points"));
+            size_t lastSlashIndex = 0;
+            size_t prevSlashIndex = 0;
+            for (size_t i = 0; i < directory.length(); ++i) {
+                if (directory.c_str()[i] == '/') {
+                    if (0 != lastSlashIndex) {
+                        prevSlashIndex = lastSlashIndex;
+                    }
+                    lastSlashIndex = i;
+                }
+            }
+            directory.truncate(prevSlashIndex + 1);
+            currentDirectory = directory; 
+            Serial.print(F("(clickHandler) currentDirectory (out): "));
+            Serial.println(currentDirectory.c_str());
+            showMenu(currentDirectory);
+        } else if (fileName.length() > 0 && fileName.c_str()[fileName.length() - 1] == '/') {
+            Serial.println(F("(clickHandler) this is directory"));
+            currentDirectory = directory + fileName; 
+            Serial.print(F("(clickHandler) currentDirectory (in): "));
+            Serial.println(currentDirectory.c_str());
+            showMenu(currentDirectory);
+        } else {
+            Serial.println(F("(clickHandler) this is file"));
+            auto fullPath = directory + fileName;
+            Serial.print(F("(clickHandler) read file: "));
+            Serial.println(fullPath.c_str());
+            loadFile(fullPath);
+            startReading();
+        }
     }
 }
 
@@ -121,9 +165,7 @@ void loop()
 
 ISR(TIMER1_COMPA_vect)
 {
-    cli();
-
-    if (fileReader->isPause() && bh->isFinished()) {
+    if (fileReader->isPause() && blockHandler->isFinished()) {
         if (dc.enabled()) {
             if (dc.check(Timer1::instance().duration())) {
                 fileReader->readContinue();
@@ -139,51 +181,54 @@ ISR(TIMER1_COMPA_vect)
         }
     }
 
-    if (!bh->isFinished()) {
+    if (!blockHandler->isFinished()) {
         PORTD = nextLevelUp ? 0xff : 0x00;
         Timer1::instance().start();
 
-        nextLevelUp = bh->getLevel();
-        nextPeriod = bh->getPeriod();
+        nextLevelUp = blockHandler->getLevel();
+        nextPeriod = blockHandler->getPeriod();
 
         // initialize the timer now do not waste time
         Timer1::instance().init(nextPeriod);
     }
-
-    sei();
 }
 
 volatile bool encoderInt0 = false;
 volatile bool encoderInt1 = false;
+volatile bool handlerInProcess = false;
 
 ISR(INT0_vect)
 {
-    cli();
-    if (encoderInt1) {
-        encoderInt1 = false;
-        if (menu) {
-            menu->stepUp();
-            encoderInt0 = false;
+    if (!handlerInProcess) {
+        handlerInProcess = true;
+        if (encoderInt1) {
             encoderInt1 = false;
+            if (menu) {
+                menu->stepUp();
+                encoderInt0 = false;
+                encoderInt1 = false;
+            }
+        } else {
+            encoderInt0 = true;
         }
-    } else {
-        encoderInt0 = true;
+        handlerInProcess = false;
     }
-    sei();
 }
 
 ISR(INT1_vect)
 {
-    cli();
-    if (encoderInt0) {
-        encoderInt0 = false;
-        if (menu) {
-            menu->stepDn();
+    if (!handlerInProcess) {
+        handlerInProcess = true;
+        if (encoderInt0) {
             encoderInt0 = false;
-            encoderInt1 = false;
+            if (menu) {
+                menu->stepDn();
+                encoderInt0 = false;
+                encoderInt1 = false;
+            }
+        } else {
+            encoderInt1 = true;
         }
-    } else {
-        encoderInt1 = true;
+        handlerInProcess = false;
     }
-    sei();
 }

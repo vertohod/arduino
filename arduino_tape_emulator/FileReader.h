@@ -3,15 +3,16 @@
 
 #include <SPI.h>
 #include <SD.h>
+#include "string.h"
 
 class FileReader
 {
 private:
-    File    mFile;
-    byte    mBlockType;
-    byte    mBlockTypeKnown;
-    volatile uint16_t  mBlockSize;
-    volatile uint16_t  mBlockRead;
+    File mFile;
+    byte mBlockType;
+    byte mBlockTypeKnown;
+    volatile size_t  mBlockSize;
+    volatile size_t  mBlockRead;
 
     enum STATE {
         READING,
@@ -22,7 +23,7 @@ private:
     volatile STATE mState;
 
 public:
-    FileReader(uint8_t sd_cs, char* file_name) :
+    FileReader(uint8_t sd_cs, const string& fileName) :
         mBlockType(0),
         mBlockTypeKnown(false),
         mBlockSize(0),
@@ -32,14 +33,14 @@ public:
         if (!SD.begin(sd_cs)) {
             while (1);
         }
-        mFile = SD.open(file_name);
+        mFile = SD.open(fileName.c_str());
     }
     ~FileReader()
     {
         mFile.close();
     }
 
-    uint16_t getBlockSize()
+    size_t getBlockSize()
     {
         byte firstByte = 0;
         byte secondByte = 0;
@@ -53,7 +54,7 @@ public:
         return firstByte | secondByte << 8;
     }
 
-    uint16_t getData(byte *buffer, uint16_t buffer_size)
+    size_t getData(volatile byte *buffer, size_t buffer_size)
     {
         if (mState != STATE::READING) return 0;
 
@@ -65,7 +66,7 @@ public:
             return 0;
         }
 
-        uint16_t counter = 0;
+        size_t counter = 0;
         for (; counter < buffer_size;) {
             if (!mFile.available()) {
                 mState = STATE::END;

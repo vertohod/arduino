@@ -19,10 +19,10 @@
 class BlockHandler
 {
 private:
-    volatile byte*      mBufferIn;
-    volatile uint16_t   mLengthIn;
-    volatile byte*      mBufferOut;
-    volatile uint16_t   mLengthOut;
+    volatile byte*  mBufferIn;
+    volatile size_t mLengthIn;
+    volatile byte*  mBufferOut;
+    volatile size_t mLengthOut;
 
     enum STAGE
     {
@@ -36,19 +36,19 @@ private:
         FINISH
     };
 
-    uint16_t    mIndexByte;
-    byte        mMask;
-    byte        mCurrentByte;
+    size_t          mIndexByte;
+    byte            mMask;
+    byte            mCurrentByte;
 
     volatile STAGE  mStage;
     bool            mCurrentBitOne;
     bool            mMeanderUp;
-    uint16_t        mPeriod;
+    size_t          mPeriod;
 
-    uint16_t        mImpulseCouter;
+    size_t          mImpulseCouter;
 
 public:
-    BlockHandler(uint16_t bufferSize) : mStage(STAGE::FINISH)
+    BlockHandler(size_t bufferSize) : mStage(STAGE::FINISH)
     {
         mBufferIn = new byte[bufferSize];
         mBufferOut = new byte[bufferSize];
@@ -66,9 +66,9 @@ public:
         return 0 == mLengthIn;
     }
 
-    byte* fillBuffer(byte *buffer, uint16_t length)
+    volatile byte* fillBuffer(volatile byte* buffer, size_t length)
     {
-        auto old_buffer = mBufferIn;
+        volatile byte* old_buffer = mBufferIn;
         mBufferIn = buffer;
         mLengthIn = length;
         return old_buffer;

@@ -7,19 +7,19 @@ void Timer1::init(double duration)
     mDuration = duration;
 
     if (duration < STEP1) {
-        mOCR1A = static_cast<unsigned int>(duration * TIMER_FRQ_Hz / (2 * 1) - 1);
+        mOCR1A = static_cast<uint16_t>(duration * TIMER_FRQ_Hz / (2 * 1) - 1);
         mPrescaling = 1 << CS10;
     } else if (duration < STEP2) {
-        mOCR1A = static_cast<unsigned int>(duration * TIMER_FRQ_Hz / (2 * 8) - 1);
+        mOCR1A = static_cast<uint16_t>(duration * TIMER_FRQ_Hz / (2 * 8) - 1);
         mPrescaling = 1 << CS11;
     } else if (duration < STEP3) {
-        mOCR1A = static_cast<unsigned int>(duration * TIMER_FRQ_Hz / (2 * 64) - 1);
+        mOCR1A = static_cast<uint16_t>(duration * TIMER_FRQ_Hz / (2 * 64) - 1);
         mPrescaling = 1 << CS11 | 1 << CS10;
     } else if (duration < STEP4) {
-        mOCR1A = static_cast<unsigned int>(duration * TIMER_FRQ_Hz / (2 * 256) - 1);
+        mOCR1A = static_cast<uint16_t>(duration * TIMER_FRQ_Hz / (2 * 256) - 1);
         mPrescaling = 1 << CS12;
     } else if (duration < STEP5) {
-        mOCR1A = static_cast<unsigned int>(duration * TIMER_FRQ_Hz / (2 * 1024) - 1);
+        mOCR1A = static_cast<uint16_t>(duration * TIMER_FRQ_Hz / (2 * 1024) - 1);
         mPrescaling = 1 << CS12 | 1 << CS10;
     } else {
         mDuration = 0.0;

@@ -10,19 +10,23 @@ private:
 
 public:
     string() : mData(nullptr), mLength(0), mCapacity(0) {}
+
     string(const string& str) {
         resize(str.mLength);
         memcpy(str.mData, mData, str.mLength + 1);
         mLength = str.mLength;
     }
+
     string(const char* str) : mData(nullptr), mLength(0), mCapacity(0) {
         mLength = strlen(str);
         resize(mLength);
         memcpy(str, mData, mLength + 1);
     }
+
     ~string() {
         clear();
     }
+
     string& operator=(const string& str)
     {
         resize(str.mLength);
@@ -30,6 +34,7 @@ public:
         mLength = str.mLength;
         return *this;
     }
+
     string& operator+(const char* str) {
         auto len = strlen(str);
         resize(mLength + len);
@@ -37,19 +42,24 @@ public:
         mLength += len;
         return *this;
     }
+
     string& operator+(const string& str) {
         operator+(str.c_str());
         return *this;
     }
-    const char* c_str() {
+
+    const char* c_str() const {
         return mData;
     }
-    size_t length() {
+
+    size_t length() const {
         return mLength;
     }
-    bool empty() {
+
+    bool empty() const {
         return 0 == strlen(mData);
     }
+
     void clear() {
         if (mData) {
             delete[] mData;
@@ -57,8 +67,33 @@ public:
         }
     }
 
+    bool operator==(const string& str) const {
+        if (length() != str.length()) {
+            return false;
+        }
+        for (size_t i = 0; i < length(); ++i) {
+            if (c_str()[i] != str.c_str()[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator!=(const string& str) const {
+        return !(operator==(str));
+    }
+
+    bool truncate(size_t position) {
+        if (position <= mLength) {
+            mData[position] = 0;
+            mLength = position;
+            return true;
+        }
+        return false;
+    }
+
 private:
-    size_t strlen(char* str) {
+    static size_t strlen(const char* str) {
         if (nullptr == str) {
             return 0;
         }
@@ -68,11 +103,13 @@ private:
         }
         return i;
     }
-    void memcpy(char* source, char* dist, size_t len) {
+
+    void memcpy(const char* const source, char* const dist, size_t len) {
         for (size_t i = 0; i < len; ++i) {
             dist[i] = source[i];
         }
     }
+
     void resize(size_t size) {
         if ((size + 1) > mCapacity) {
             mCapacity = size + 1;

@@ -13,10 +13,10 @@ class DirReader : public IDataProvider
 private:
     string          mPaht;
     File            mDirectory;
-    uint8_t         mSizeDataSet;
+    uint8_t         mSizeDataset;
 
 public:
-    DirReader(uint8_t SDPin) : mSizeDataSet(0)
+    DirReader(uint8_t SDPin) : mSizeDataset(0)
     {
         Serial.println(F("(DirReader) Initializing SD card..."));
         if (!SD.begin(SDPin)) {
@@ -24,12 +24,23 @@ public:
         }
         Serial.println(F("(DirReader) SD card is initialized"));
     }
+    ~DirReader() override {
+        Serial.println(F("(~DirReader)"));
+    }
+
     void setDirectory(const string& path)
     {
         mPaht = path;
     }
+
+    virtual string getDirectory() override
+    {
+        return mPaht;
+    }
+
     tListString* read(uint16_t position)
     {
+        static const string root("/");
         if (!openDirectory()) {
             return nullptr;
         }
@@ -37,15 +48,16 @@ public:
             closeDirectory();
             return nullptr;
         }
-        auto result = readFiles(mSizeDataSet);
+        bool addTwoPoints = (mPaht != root) && (position == 0);
+        auto result = readFiles(mSizeDataset, addTwoPoints);
         closeDirectory();
         return result;
     }
 
 // IDataProvider
-    void setSizeDataSet(uint8_t size) override
+    void setSizeDataset(uint8_t size) override
     {
-        mSizeDataSet = size;
+        mSizeDataset = size;
     }
     tListString* getData(uint16_t position) override
     {
@@ -57,7 +69,7 @@ private:
         mDirectory = SD.open(mPaht.c_str());
         return mDirectory;
     }
-    bool closeDirectory() {
+    void closeDirectory() {
         if (mDirectory) {
             mDirectory.close();
         }
@@ -72,12 +84,16 @@ private:
         }
         return true;
     }
-    tListString* readFiles(uint8_t amount)
+    tListString* readFiles(uint8_t amount, bool addTwoPoints)
     {
         auto fileList = new tListString();
         if (nullptr == fileList) {
             Serial.print(F("DirReader::readFiles, fileList is nullptr"));
             return nullptr;
+        }
+        if (addTwoPoints) {
+            fileList->push("..");
+            --amount;
         }
         for (uint8_t i = 0; i < amount; ++i) {
             auto file = mDirectory.openNextFile();

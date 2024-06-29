@@ -21,19 +21,27 @@ public:
     Menu(IDataProvider* dataProvider, IMenuDrawer* menuDrawer)
         : mDataProvider(dataProvider)
         , mMenuDrawer(menuDrawer)
-        , mLength(0)
-        , mVisibleBuffer(nullptr)
         , mCurrentPosition(0)
         , mUpVisiblePosition(0)
     {
         mLength = mMenuDrawer->maxItems() - 1;
-        mDataProvider->setSizeDataSet(mLength);
+        mDataProvider->setSizeDataset(mLength);
         mVisibleBuffer = mDataProvider->getData(0);
         draw();
     }
 
     ~Menu() {
         deleteBuffer();
+        if (nullptr != mDataProvider) {
+            delete mDataProvider;
+        }
+        if (nullptr != mMenuDrawer) {
+            delete mMenuDrawer;
+        }
+    }
+
+    string getDirectory() {
+        return mDataProvider->getDirectory();
     }
 
     string getChosenItem() {
@@ -61,13 +69,18 @@ public:
                 deleteBuffer();
                 mVisibleBuffer = mDataProvider->getData(mUpVisiblePosition);
             }
-            draw(true, true);
+            draw(true);
         }
     }
 
     void stepDn() {
+        if (nullptr == mVisibleBuffer) {
+            return;
+        }
         if (mCurrentPosition < mLength - 1) {
-            ++mCurrentPosition;
+            if (mCurrentPosition < mVisibleBuffer->size() - 1) {
+                ++mCurrentPosition;
+            }
             draw(true);
         } else {
             deleteBuffer();
@@ -82,7 +95,7 @@ public:
                 mUpVisiblePosition += mLength;
                 mCurrentPosition = 0;
             }
-            draw(true, true);
+            draw(true);
         }
     }
 
@@ -99,6 +112,11 @@ private:
                 mMenuDrawer->drawItem(*it, counter, mCurrentPosition == counter);
             }
             ++counter;
+        }
+        if (mVisibleBuffer->size() < mLength) {
+            for (auto i = mVisibleBuffer->size(); i < mLength; ++i) {
+                mMenuDrawer->drawItem(string(), i, false);
+            }
         }
     }
 

@@ -12,7 +12,7 @@ bool BlockHandler::isBufferEmpty()
 
 void BlockHandler::fillBuffer(const byte* const buffer, size_t length)
 {
-    memcpy((void*) &mBufferIn[0], (void*) buffer, length);
+    memcpy(static_cast<void*>(&mBufferIn[0]), static_cast<const void*>(buffer), length);
     mLengthIn = length;
 }
 
@@ -31,7 +31,7 @@ bool BlockHandler::moveData()
 {
     if (mLengthIn == 0) return false;
 
-    memcpy((void*) &mBufferOut[0], (void*) &mBufferIn[0], mLengthIn);
+    memcpy(static_cast<void*>(&mBufferOut[0]), static_cast<const void*>(&mBufferIn[0]), mLengthIn);
     mLengthOut = mLengthIn;
     mLengthIn = 0;
 

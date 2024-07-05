@@ -1,4 +1,3 @@
-#include <MemoryFree.h>
 #include "BlockHandler.h"
 #include "FileReader.h"
 #include "Timer1.h"
@@ -10,25 +9,14 @@
 
 #define SD_CS 10
 #define OUTPUT_PIN 4
-#define DURATION_PAUSE 5.0 // seconds
+#define DURATION_PAUSE 2.0 // seconds
 #define TEXT_SIZE 2
 #define ROOT "/"
 
 void setup() {
-    Serial.begin(115200);
-    Serial.println(F("******** setup *********"));
-    Serial.print(F("RAM left: "));
-    Serial.println(FreeRam());
-
-    Serial.println(F("(getFileNameList) Initializing SD card..."));
     if (!SD.begin(SD_CS)) {
         while(true);
     }
-    Serial.println(F("(getFileNameList) SD card is initialized"));
-
-    Serial.print(F("RAM left: "));
-    Serial.println(FreeRam());
-
     // Enable output to port D
     DDRD = B00010000;
 }
@@ -42,8 +30,6 @@ byte* dataBuffer = nullptr;
 void initReading()
 {
     size_t length = fileReader->getData(dataBuffer, BUFFER_SIZE);
-    Serial.print(F("(startReading) length: "));
-    Serial.println(length);
     if (length > 0) {
         blockHandler->fillBuffer(dataBuffer, length);
         blockHandler->start(fileReader->getBlockType());
@@ -88,9 +74,6 @@ void loop()
 {
     char* path = getPathFile("/");
     startReading(path);
-
-    Serial.print(F("RAM left: "));
-    Serial.println(FreeRam());
 }
 
 // ---------- Interuptrs Handlers ------------

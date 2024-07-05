@@ -7,8 +7,15 @@
 
 #define MENU_LENGTH 7
 #define FILENAME_LENGTH 14
+
 typedef char tFileName[FILENAME_LENGTH]; 
-typedef tFileName tFileNameList[MENU_LENGTH];
+
+struct tFileInfo {
+    tFileName   fileName;
+    uint32_t    fileSize;
+};
+
+typedef tFileInfo tFileNameList[MENU_LENGTH];
 
 class DirReader {
 public:
@@ -17,7 +24,6 @@ public:
 private:
     bool skipFiles(File& directory, uint16_t position);
     uint8_t readFiles(File& directory, tFileNameList& fileNameList, bool addTwoPoints);
-    static uint16_t strlen(const char* str);
 };
 
 #endif

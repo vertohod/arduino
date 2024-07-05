@@ -6,6 +6,8 @@
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 
+#define OUTPUT_ITEM_LENGTH 20
+
 class MenuDrawer {
 private:
     Adafruit_ILI9341 mScreen;

@@ -1,6 +1,7 @@
 #include "Menu.h"
 
 #define TWO_POINTS ".."
+#define KILOBYTE "KB"
 
 Menu* gMenuPtr = nullptr;
 tPath gPathFile;
@@ -61,7 +62,7 @@ void Menu::updateMenu()
 void Menu::getChosenItem(char result[FILENAME_LENGTH]) {
     for (uint8_t i = 0; i < mLength; ++i) {
         if (mCurrentPosition == i) {
-            char* fileName = mFileNameList[i];
+            char* fileName = mFileNameList[i].fileName;
             memcpy(static_cast<void*>(result), static_cast<const void*>(&fileName[0]), strlen(fileName) + 1);
         }
     }
@@ -75,10 +76,9 @@ void Menu::stepUp() {
         if (mUpVisiblePosition > 0) {
             mUpVisiblePosition -= mLength;
             mCurrentPosition = mLength - 1;
-
             mFilesAmount = mDirReader.getFileNameList(mPath, mUpVisiblePosition, mFileNameList);
+            menuDraw(true);
         }
-        menuDraw(true);
     }
 }
 
@@ -86,8 +86,8 @@ void Menu::stepDn() {
     if (mCurrentPosition < mLength - 1) {
         if (mCurrentPosition < mFilesAmount - 1) {
             ++mCurrentPosition;
+            menuDraw(true);
         }
-        menuDraw(true);
     } else {
         mFilesAmount = mDirReader.getFileNameList(mPath, mUpVisiblePosition + mLength, mFileNameList);
         if (mFilesAmount == 0) {
@@ -95,8 +95,8 @@ void Menu::stepDn() {
         } else {
             mUpVisiblePosition += mLength;
             mCurrentPosition = 0;
+            menuDraw(true);
         }
-        menuDraw(true);
     }
 }
 
@@ -107,8 +107,6 @@ bool Menu::clickHandler() {
     uint16_t fileNameLength = 0; 
     getChosenItem(fileName);
     fileNameLength = strlen(fileName);
-    Serial.print(F("(clickHandler) fileName: "));
-    Serial.println(fileName);
     if (isStrEq(fileName, TWO_POINTS)) {
         prevSlashIndex = getPrevSlash(mPath);
         // truncate
@@ -162,15 +160,42 @@ bool Menu::isStrEq(const char* str1, const char* str2)
 }
 
 void Menu::menuDraw(bool quickDraw, bool superQuick) {
+    char textNumber[9];
+
     if (!quickDraw) {
         mMenuDrawer.setHeader(mPath);
     }
     for (uint8_t i = 0; i < mFilesAmount; ++i) {
-        const char* fileName = mFileNameList[i];
+        char textOutput[OUTPUT_ITEM_LENGTH];
+        for (auto i = 0; i < OUTPUT_ITEM_LENGTH; ++i) {
+            textOutput[i] = ' ';
+        }
+        textOutput[OUTPUT_ITEM_LENGTH - 1] = 0;
+
+        // format text
+        const char* fileNameSrc = mFileNameList[i].fileName;
+        memcpy(static_cast<void*>(&textOutput[0]), static_cast<const void*>(fileNameSrc), strlen(fileNameSrc));
+        if (mFileNameList[i].fileSize > 0) {
+            uint16_t sizePosition = OUTPUT_ITEM_LENGTH - strlen(KILOBYTE) - 1;
+            memcpy(static_cast<void*>(&textOutput[sizePosition]), static_cast<const void*>(KILOBYTE), strlen(KILOBYTE));
+            uint32_t sizeKb = mFileNameList[i].fileSize / 1024;
+            sprintf(textNumber, "%lu", sizeKb);
+            --sizePosition;
+            for(;;) {
+                sizeKb = sizeKb / 10;
+                if (sizeKb > 0) {
+                    --sizePosition;
+                } else {
+                    break;
+                }
+            }
+            memcpy(static_cast<void*>(&textOutput[sizePosition]), static_cast<const void*>(&textNumber[0]), strlen(textNumber));
+        }
+
         if (quickDraw) {
-            mMenuDrawer.quickDrawItem(fileName, i, mCurrentPosition == i, !superQuick);
+            mMenuDrawer.quickDrawItem(textOutput, i, mCurrentPosition == i, !superQuick);
         } else {
-            mMenuDrawer.drawItem(fileName, i, mCurrentPosition == i);
+            mMenuDrawer.drawItem(textOutput, i, mCurrentPosition == i);
         }
     }
     if (mFilesAmount < mLength) {

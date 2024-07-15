@@ -1,7 +1,5 @@
 #include "MenuDrawer.h"
 
-#define TFT_CS 7
-#define TFT_DC 9
 #define SYMBOL_HEIGHT   8 
 #define SYMBOL_WIDTH    6
 #define MARGIN_MUL      0.5
@@ -9,12 +7,10 @@
 #define MENUDRAWER_DARKGREY 0x5555
 #define THREE_POINTS "..."
 
-MenuDrawer::MenuDrawer()
-    : mScreen(Adafruit_ILI9341(TFT_CS, TFT_DC))
+MenuDrawer::MenuDrawer(Adafruit_ILI9341 *screenPtr) : mScreenPtr(screenPtr)
 {
-    mScreen.begin();
-    mScreen.fillScreen(ILI9341_BLACK);
-    mScreen.setTextColor(ILI9341_WHITE);
+    mScreenPtr->begin();
+    mScreenPtr->fillScreen(ILI9341_BLACK);
 }
 
 void MenuDrawer::setTextSize(uint8_t textSize)
@@ -24,15 +20,15 @@ void MenuDrawer::setTextSize(uint8_t textSize)
     mItemHeight = mTextHeight + mMargin * 2;
     mTopPosition = mItemHeight + 1;
 
-    mScreen.setTextSize(textSize);
+    mScreenPtr->setTextSize(textSize);
 }
 
 void MenuDrawer::setHeader(const char* text) {
     char path[OUTPUT_PATH_LENGTH];
 
-    mScreen.fillRect(0, 0, mScreen.width(), mItemHeight, ILI9341_BLACK);
-    mScreen.setTextColor(ILI9341_WHITE);
-    mScreen.setCursor(mMargin, mMargin);
+    mScreenPtr->fillRect(0, 0, mScreenPtr->width(), mItemHeight, ILI9341_BLACK);
+    mScreenPtr->setTextColor(ILI9341_WHITE);
+    mScreenPtr->setCursor(mMargin, mMargin);
     auto length = min(strlen(text), OUTPUT_PATH_LENGTH);
     memcpy(static_cast<void*>(path), static_cast<const void*>(text), length);
     if (length < strlen(text)) {
@@ -40,38 +36,21 @@ void MenuDrawer::setHeader(const char* text) {
     } else {
         path[length] = 0;
     }
-    mScreen.println(path);
-}
-
-uint8_t MenuDrawer::maxItems() {
-    return mScreen.height() / (mItemHeight + 2) - 1;
-}
-
-void MenuDrawer::drawItem(const char* text, uint16_t position, bool active) {
-    draw(text, position, active, true, true);
-}
-
-void MenuDrawer::quickDrawItem(const char* text, uint16_t position, bool active, bool fillAll) {
-    draw(text, position, active, fillAll);
+    mScreenPtr->println(path);
 }
 
 void MenuDrawer::draw(const char* text, uint16_t position, bool active, bool fillAll, bool drawLine) {
-    auto backColor = ILI9341_BLACK;
-    auto textColor = ILI9341_LIGHTGREY;
-    if (active) {
-        backColor = ILI9341_WHITE;
-        textColor = ILI9341_BLACK;
-    }
+    auto backColor = active ? ILI9341_WHITE : ILI9341_BLACK;
     auto yPosition = mTopPosition + (mItemHeight + 2) * position;
     if (fillAll) {
-        mScreen.fillRect(0, yPosition, mScreen.width(), mItemHeight, backColor);
+        mScreenPtr->fillRect(0, yPosition, mScreenPtr->width(), mItemHeight, backColor);
     } else {
-        mScreen.fillRect(mMargin, yPosition + mMargin, mScreen.width() - mMargin * 2, mTextHeight, backColor);
+        mScreenPtr->fillRect(mMargin, yPosition + mMargin, mScreenPtr->width() - mMargin * 2, mTextHeight, backColor);
     }
     if (drawLine) {
-        mScreen.drawLine(mMargin, yPosition + mItemHeight + 1, mScreen.width() - mMargin, yPosition + mItemHeight + 1, ILI9341_DARKGREY);
+        mScreenPtr->drawLine(mMargin, yPosition + mItemHeight + 1, mScreenPtr->width() - mMargin, yPosition + mItemHeight + 1, ILI9341_DARKGREY);
     }
-    mScreen.setTextColor(textColor);
-    mScreen.setCursor(mMargin, yPosition + mMargin + 2);
-    mScreen.println(text);
+    mScreenPtr->setTextColor(active ? ILI9341_BLACK : ILI9341_LIGHTGREY);
+    mScreenPtr->setCursor(mMargin, yPosition + mMargin + 2);
+    mScreenPtr->println(text);
 }

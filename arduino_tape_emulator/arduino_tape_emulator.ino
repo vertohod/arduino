@@ -1,19 +1,28 @@
+#include "DurationCounter.h"
 #include "BlockHandler.h"
 #include "FileReader.h"
+#include "BMPDrawer.h"
 #include "Timer1.h"
 #include "Menu.h"
-#include "DurationCounter.h"
 
 #include "SPI.h"
 #include "SD.h"
 
+#define TFT_CS 7
+#define TFT_DC 9
 #define SD_CS 10
 #define OUTPUT_PIN 4
 #define DURATION_PAUSE 2.0 // seconds
 #define TEXT_SIZE 2
 #define ROOT "/"
 
+Adafruit_ILI9341 *gScreenPtr = nullptr;
+
 void setup() {
+    Serial.begin(115200);
+    Serial.println(F("setup"));
+
+    gScreenPtr = new Adafruit_ILI9341(TFT_CS, TFT_DC);
     if (!SD.begin(SD_CS)) {
         while(true);
     }
@@ -72,7 +81,9 @@ void startReading(const char *path) {
 
 void loop()
 {
-    char* path = getPathFile("/");
+    char* path = getPathFile(gScreenPtr, "/");
+
+    drawBMP(gScreenPtr, path);
     startReading(path);
 }
 

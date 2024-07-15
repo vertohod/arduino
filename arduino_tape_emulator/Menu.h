@@ -5,9 +5,9 @@
 #include "DirReader.h"
 #include "MenuDrawer.h"
 
-char* getPathFile(const char* path);
+char* getPathFile(Adafruit_ILI9341 *screenPtr, const char* path);
 
-typedef char tPath[(FILENAME_LENGTH + 1) * 3];
+typedef char tPath[(FILENAME_LENGTH + 1) * 2];
 
 class Menu {
 private:
@@ -17,9 +17,8 @@ private:
     tPath           mPath;
     tFileNameList   mFileNameList;
 
-    uint8_t         mLength;
-    uint8_t         mCurrentPosition;
     uint16_t        mUpVisiblePosition;
+    uint8_t         mCurrentPosition;
     uint8_t         mFilesAmount;
 
 public:
@@ -27,7 +26,7 @@ public:
     bool            mEncoderInt1;
 
 public:
-    Menu(const char* path);
+    Menu(Adafruit_ILI9341 *screenPtr, const char* path);
     void updateMenu();
     void getChosenItem(char result[FILENAME_LENGTH]);
     void stepUp();

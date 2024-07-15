@@ -6,8 +6,8 @@
 Menu* gMenuPtr = nullptr;
 tPath gPathFile;
 
-char* getPathFile(const char* path) {
-    Menu localMenu(path);
+char* getPathFile(Adafruit_ILI9341 *screenPtr, const char* path) {
+    Menu localMenu(screenPtr, path);
     gMenuPtr = &localMenu;
 
     // Enable INT0, INT1
@@ -37,13 +37,12 @@ char* getPathFile(const char* path) {
     return &gPathFile[0];
 }
 
-Menu::Menu(const char* path)
+Menu::Menu(Adafruit_ILI9341 *screenPtr, const char* path) : mMenuDrawer(screenPtr)
 {
     memcpy(static_cast<void*>(&mPath[0]), static_cast<const void*>(path), strlen(path) + 1);
 
     mMenuDrawer.setTextSize(2);
 
-    mLength = MENU_LENGTH;
     mCurrentPosition = 0;
     mUpVisiblePosition = 0;
     mFilesAmount = 0;
@@ -60,7 +59,7 @@ void Menu::updateMenu()
 }
 
 void Menu::getChosenItem(char result[FILENAME_LENGTH]) {
-    for (uint8_t i = 0; i < mLength; ++i) {
+    for (uint8_t i = 0; i < MENU_LENGTH; ++i) {
         if (mCurrentPosition == i) {
             char* fileName = mFileNameList[i].fileName;
             memcpy(static_cast<void*>(result), static_cast<const void*>(&fileName[0]), strlen(fileName) + 1);
@@ -74,8 +73,8 @@ void Menu::stepUp() {
         menuDraw(true);
     } else {
         if (mUpVisiblePosition > 0) {
-            mUpVisiblePosition -= mLength;
-            mCurrentPosition = mLength - 1;
+            mUpVisiblePosition -= MENU_LENGTH;
+            mCurrentPosition = MENU_LENGTH - 1;
             mFilesAmount = mDirReader.getFileNameList(mPath, mUpVisiblePosition, mFileNameList);
             menuDraw(true);
         }
@@ -83,17 +82,17 @@ void Menu::stepUp() {
 }
 
 void Menu::stepDn() {
-    if (mCurrentPosition < mLength - 1) {
+    if (mCurrentPosition < MENU_LENGTH - 1) {
         if (mCurrentPosition < mFilesAmount - 1) {
             ++mCurrentPosition;
             menuDraw(true);
         }
     } else {
-        mFilesAmount = mDirReader.getFileNameList(mPath, mUpVisiblePosition + mLength, mFileNameList);
+        mFilesAmount = mDirReader.getFileNameList(mPath, mUpVisiblePosition + MENU_LENGTH, mFileNameList);
         if (mFilesAmount == 0) {
             mFilesAmount = mDirReader.getFileNameList(mPath, mUpVisiblePosition, mFileNameList);
         } else {
-            mUpVisiblePosition += mLength;
+            mUpVisiblePosition += MENU_LENGTH;
             mCurrentPosition = 0;
             menuDraw(true);
         }
@@ -198,8 +197,8 @@ void Menu::menuDraw(bool quickDraw, bool superQuick) {
             mMenuDrawer.drawItem(textOutput, i, mCurrentPosition == i);
         }
     }
-    if (mFilesAmount < mLength) {
-        for (auto i = mFilesAmount; i < mLength; ++i) {
+    if (mFilesAmount < MENU_LENGTH) {
+        for (auto i = mFilesAmount; i < MENU_LENGTH; ++i) {
             mMenuDrawer.drawItem("", i, false);
         }
     }

@@ -10,19 +10,22 @@
 
 class MenuDrawer {
 private:
-    Adafruit_ILI9341 mScreen;
-    uint8_t mTopPosition;
-    uint8_t mMargin;
+    Adafruit_ILI9341 *mScreenPtr;
     uint8_t mTextHeight;
+    uint8_t mMargin;
     uint8_t mItemHeight;
+    uint8_t mTopPosition;
 
 public:
-    MenuDrawer();
+    MenuDrawer(Adafruit_ILI9341 *screenPtr);
     void setTextSize(uint8_t textSize);
     void setHeader(const char* text);
-    uint8_t maxItems();
-    void drawItem(const char* text, uint16_t position, bool active);
-    void quickDrawItem(const char* text, uint16_t position, bool active, bool fillAll);
+    inline void drawItem(const char* text, uint16_t position, bool active) {
+        draw(text, position, active, true, true);
+    }
+    inline void quickDrawItem(const char* text, uint16_t position, bool active, bool fillAll) {
+        draw(text, position, active, fillAll);
+    }
 private:
     void draw(const char* text, uint16_t position, bool active, bool fillAll = false, bool drawLine = false);
 };

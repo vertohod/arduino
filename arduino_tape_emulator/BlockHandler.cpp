@@ -10,7 +10,7 @@ bool BlockHandler::isBufferEmpty()
     return 0 == mLengthIn;
 }
 
-void BlockHandler::fillBuffer(const byte* const buffer, size_t length)
+void BlockHandler::fillBuffer(const byte* const buffer, uint16_t length)
 {
     memcpy(static_cast<void*>(&mBufferIn[0]), static_cast<const void*>(buffer), length);
     mLengthIn = length;

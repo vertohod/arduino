@@ -35,7 +35,7 @@ byte* dataBuffer = nullptr;
 
 void initReading()
 {
-    size_t length = fileReader->getData(dataBuffer, BUFFER_SIZE);
+    uint16_t length = fileReader->getData(dataBuffer, BUFFER_SIZE);
     if (length > 0) {
         blockHandler->fillBuffer(dataBuffer, length);
         blockHandler->start(fileReader->getBlockType());
@@ -64,7 +64,7 @@ void startReading(const char *path) {
     while (true) {
         if (!(localFileRieader.isPause())) {
             if (!(blockHandler->isFinished()) && blockHandler->isBufferEmpty()) {
-                size_t length = localFileRieader.getData(dataBuffer, BUFFER_SIZE);
+                uint16_t length = localFileRieader.getData(dataBuffer, BUFFER_SIZE);
                 if (length > 0) {
                     blockHandler->fillBuffer(dataBuffer, length);
                 }

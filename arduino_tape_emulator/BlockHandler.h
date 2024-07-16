@@ -21,10 +21,10 @@
 class BlockHandler
 {
 private:
-    byte   mBufferIn[BUFFER_SIZE];
-    size_t mLengthIn;
-    byte   mBufferOut[BUFFER_SIZE];
-    size_t mLengthOut;
+    byte        mBufferIn[BUFFER_SIZE];
+    uint16_t    mLengthIn;
+    byte        mBufferOut[BUFFER_SIZE];
+    uint16_t    mLengthOut;
 
     enum STAGE
     {
@@ -38,22 +38,22 @@ private:
         FINISH
     };
 
-    size_t          mIndexByte;
+    uint16_t        mIndexByte;
     byte            mMask;
     byte            mCurrentByte;
 
     STAGE           mStage;
     bool            mCurrentBitOne;
     bool            mMeanderUp;
-    size_t          mPeriod;
+    uint16_t        mPeriod;
 
-    size_t          mImpulseCouter;
+    uint16_t        mImpulseCouter;
 
 public:
     BlockHandler(const char*);
 
     bool isBufferEmpty();
-    void fillBuffer(const byte* const buffer, size_t length);
+    void fillBuffer(const byte* const buffer, uint16_t length);
 
 private:
     void init();

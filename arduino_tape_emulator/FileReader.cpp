@@ -15,7 +15,7 @@ FileReader::~FileReader()
     mFile.close();
 }
 
-size_t FileReader::getBlockSize()
+uint16_t FileReader::getBlockSize()
 {
     byte firstByte = 0;
     byte secondByte = 0;
@@ -29,7 +29,7 @@ size_t FileReader::getBlockSize()
     return firstByte | secondByte << 8;
 }
 
-size_t FileReader::getData(byte *buffer, size_t buffer_size)
+uint16_t FileReader::getData(byte *buffer, uint16_t buffer_size)
 {
     if (mState != STATE::READING) return 0;
 
@@ -41,7 +41,7 @@ size_t FileReader::getData(byte *buffer, size_t buffer_size)
         return 0;
     }
 
-    size_t counter = 0;
+    uint16_t counter = 0;
     for (; counter < buffer_size;) {
         if (!mFile.available()) {
             mState = STATE::END;

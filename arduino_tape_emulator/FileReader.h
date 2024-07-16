@@ -11,8 +11,8 @@ private:
     File mFile;
     byte mBlockType;
     byte mBlockTypeKnown;
-    size_t  mBlockSize;
-    size_t  mBlockRead;
+    uint16_t  mBlockSize;
+    uint16_t  mBlockRead;
 
     enum STATE {
         READING,
@@ -25,8 +25,8 @@ public:
     FileReader(const char* fileName); 
     ~FileReader();
 
-    size_t getBlockSize();
-    size_t getData(byte *buffer, size_t buffer_size);
+    uint16_t getBlockSize();
+    uint16_t getData(byte *buffer, uint16_t buffer_size);
     byte getBlockType();
     bool isPause();
     void readContinue();

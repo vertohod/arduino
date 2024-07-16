@@ -1,10 +1,7 @@
 #include "MenuDrawer.h"
+#include "Types.h"
 
-#define SYMBOL_HEIGHT   8 
-#define SYMBOL_WIDTH    6
-#define MARGIN_MUL      0.5
 #define OUTPUT_PATH_LENGTH 15
-#define MENUDRAWER_DARKGREY 0x5555
 #define THREE_POINTS "..."
 
 MenuDrawer::MenuDrawer(Adafruit_ILI9341 *screenPtr) : mScreenPtr(screenPtr)

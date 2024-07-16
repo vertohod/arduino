@@ -4,10 +4,11 @@
 #include <Arduino.h>
 #include "DirReader.h"
 #include "MenuDrawer.h"
+#include "Types.h"
 
 bool getPathFile(Adafruit_ILI9341 *screenPtr, char* path, uint16_t& position);
-
-typedef char tPath[(FILENAME_LENGTH + 1) * 2];
+void MenuInt0Handler();
+void MenuInt1Handler();
 
 class Menu {
 private:

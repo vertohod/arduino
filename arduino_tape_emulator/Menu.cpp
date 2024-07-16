@@ -1,4 +1,5 @@
 #include "Menu.h"
+#include "SwitchExceptions.h"
 
 #define TWO_POINTS ".."
 #define KILOBYTE "KB"
@@ -10,9 +11,7 @@ bool getPathFile(Adafruit_ILI9341 *screenPtr, char* path, uint16_t& position) {
     Menu localMenu(screenPtr, path, position);
     gMenuPtr = &localMenu;
 
-    // Enable INT0, INT1
-    EICRA = 1 << ISC11 | 1 << ISC10 | 1 << ISC01 | 1 << ISC00;
-    EIMSK = 1 << INT1 | 1 << INT0;
+    enableExceptions();
 
     bool result = false;
     bool buttonIsClicked = false;
@@ -41,9 +40,7 @@ bool getPathFile(Adafruit_ILI9341 *screenPtr, char* path, uint16_t& position) {
             }
         }
     }
-    // Disable INT0, INT1
-    EICRA = 0; 
-    EIMSK = 0; 
+    disableExceptions();
 
     return result;
 }
@@ -238,8 +235,7 @@ void Menu::menuDraw(bool quickDraw, bool superQuick) {
     }
 }
 
-ISR(INT0_vect)
-{
+void MenuInt0Handler() {
     gMenuPtr->clearTimeout();
     if (gMenuPtr->mEncoderInt1) {
         gMenuPtr->mEncoderInt1 = false;
@@ -249,8 +245,7 @@ ISR(INT0_vect)
     }
 }
 
-ISR(INT1_vect)
-{
+void MenuInt1Handler() {
     gMenuPtr->clearTimeout();
     if (gMenuPtr->mEncoderInt0) {
         gMenuPtr->mEncoderInt0 = false;

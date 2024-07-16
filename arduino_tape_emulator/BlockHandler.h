@@ -3,7 +3,7 @@
 
 #include "Types.h"
 
-#define BUFFER_SIZE 16
+#define BUFFER_SIZE 32
 
 // Signal duration in ticks
 #define PILOT_SGN       2168

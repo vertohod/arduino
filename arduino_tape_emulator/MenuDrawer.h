@@ -1,10 +1,10 @@
 #ifndef DRAW_MENU_H
 #define DRAW_MENU_H
 
-#include "Arduino.h"
-#include "SPI.h"
-#include "Adafruit_GFX.h"
-#include "Adafruit_ILI9341.h"
+#include <Arduino.h>
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_ILI9341.h>
 
 #define OUTPUT_ITEM_LENGTH 20
 

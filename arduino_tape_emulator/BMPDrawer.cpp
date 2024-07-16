@@ -1,17 +1,75 @@
 #include "BMPDrawer.h"
+#include "SwitchExceptions.h"
+#include "Types.h"
 
 #define PALETTE_SIZE 16
 #define IMAGE_BUFFER_SIZE 16
+#define TEXT_BYTES "Bytes"
 
-void drawBMP(Adafruit_ILI9341 *screenPtr, const char *path) {
+volatile bool gActiveCycle = true;
+
+void drawBMP(Adafruit_ILI9341 *screenPtr, const char *path, bool waitCycle) {
+    tPath pathImage;
+    memcpy(static_cast<void*>(&pathImage[0]), static_cast<const void*>(path), strlen(path) + 1);
+    auto index = BMPDrawer::getLastPoint(pathImage);
+    if (0 != index) {
+        memcpy(static_cast<void*>(&pathImage[index + 1]), static_cast<const void*>(EXTENSION_BMP), 4);
+    }
+
     BMPDrawer drawer(screenPtr);
-    drawer.draw(path, 0, 120);
+    drawer.drawFileInfo(path);
+    drawer.draw(&pathImage[0], 0, 120);
+
+    if (!waitCycle) {
+        return;
+    }
+    gActiveCycle = true;
+    enableExceptions();
+    while (gActiveCycle) {
+    }
+    disableExceptions();
 }
 
 BMPDrawer::BMPDrawer(Adafruit_ILI9341 *screenPtr) : mScreenPtr(screenPtr) {
     mScreenPtr->begin();
     mScreenPtr->fillScreen(ILI9341_BLACK);
+}
+
+void BMPDrawer::drawFileInfo(const char *path) {
+    mScreenPtr->setTextSize(TEXT_SIZE);
     mScreenPtr->setTextColor(ILI9341_WHITE);
+    File file = SD.open(path);
+    uint16_t length = strlen(file.name());
+    uint32_t fileSize = file.size();
+
+    uint16_t xPosition = (mScreenPtr->width() - length * SYMBOL_WIDTH * TEXT_SIZE) / 2;
+    uint16_t yPosition = static_cast<float>(SYMBOL_HEIGHT * TEXT_SIZE) * MARGIN_MUL;
+    mScreenPtr->setCursor(xPosition, yPosition);
+    mScreenPtr->println(file.name());
+    file.close();
+
+    yPosition += static_cast<float>(SYMBOL_HEIGHT * TEXT_SIZE * 2 + 2);
+    mScreenPtr->setCursor(0, yPosition);
+    mScreenPtr->println(F("Size: "));
+
+    xPosition = mScreenPtr->width() - SYMBOL_WIDTH * TEXT_SIZE * (strlen(TEXT_BYTES) + 2);
+    auto sizeByte = fileSize;
+    for(;;) {
+        sizeByte = sizeByte / 10;
+        if (sizeByte > 0) {
+            xPosition -= SYMBOL_WIDTH * TEXT_SIZE;
+        } else {
+            break;
+        }
+    }
+    mScreenPtr->setCursor(xPosition, yPosition);
+    mScreenPtr->println(fileSize);
+    xPosition = mScreenPtr->width() - SYMBOL_WIDTH * TEXT_SIZE * strlen(TEXT_BYTES);
+    mScreenPtr->setCursor(xPosition, yPosition);
+    mScreenPtr->println(TEXT_BYTES);
+
+    yPosition += static_cast<float>(SYMBOL_HEIGHT * TEXT_SIZE * 2 + 2);
+    mScreenPtr->drawRect(0, yPosition, mScreenPtr->width(), SYMBOL_HEIGHT * TEXT_SIZE * 2, ILI9341_WHITE);
 }
 
 void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
@@ -96,4 +154,23 @@ uint32_t BMPDrawer::readLE32() {
       | static_cast<uint32_t>(mFile.read()) << 8
       | static_cast<uint32_t>(mFile.read()) << 16
       | static_cast<uint32_t>(mFile.read()) << 24;
+}
+
+uint16_t BMPDrawer::getLastPoint(const char* path) {
+    uint16_t lastPointIndex = 0;
+    uint16_t strLen = strlen(path);
+    for (uint16_t i = 0; i < strLen; ++i) {
+        if (path[i] == '.') {
+            lastPointIndex = i;
+        }
+    }
+    return lastPointIndex;
+}
+
+void BMPDrawerInt0Handler() {
+    gActiveCycle = false;
+}
+
+void BMPDrawerInt1Handler() {
+    gActiveCycle = false;
 }

@@ -5,15 +5,14 @@
 #include "Timer1.h"
 #include "Menu.h"
 
-#include "SPI.h"
-#include "SD.h"
+#include <SPI.h>
+#include <SD.h>
 
 #define TFT_CS 7
 #define TFT_DC 9
 #define SD_CS 10
 #define OUTPUT_PIN 4
 #define DURATION_PAUSE 2.0 // seconds
-#define TEXT_SIZE 2
 #define ROOT "/"
 
 Adafruit_ILI9341 *gScreenPtr = nullptr;
@@ -32,10 +31,13 @@ BlockHandler *blockHandler = nullptr;
 bool nextLevelUp = false;
 float nextPeriod = 0.0;
 byte* dataBuffer = nullptr;
+uint32_t gFileSize = 0;
+uint32_t gFileRead = 0;
 
 void initReading()
 {
     uint16_t length = fileReader->getData(dataBuffer, BUFFER_SIZE);
+    gFileRead += length;
     if (length > 0) {
         blockHandler->fillBuffer(dataBuffer, length);
         blockHandler->start(fileReader->getBlockType());
@@ -50,8 +52,25 @@ void initReading()
     }
 }
 
+void drawProgress() {
+    if (gScreenPtr) {
+        uint16_t yPosition = SYMBOL_HEIGHT * TEXT_SIZE * MARGIN_MUL;
+        yPosition += (SYMBOL_HEIGHT * TEXT_SIZE + 1) * 4;
+        uint16_t width = static_cast<float>(gFileRead) / gFileSize * gScreenPtr->width();
+        uint16_t xPosition = width > 4 ? width - 4 : 0;
+        width = width > 4 ? 4 : width;
+        gScreenPtr->startWrite();
+        gScreenPtr->fillRect(xPosition, yPosition, width, SYMBOL_HEIGHT * TEXT_SIZE * 2, ILI9341_WHITE);
+        gScreenPtr->dmaWait();
+        gScreenPtr->endWrite();
+    }
+}
+
 void startReading(const char *path) {
     byte localDataBuffer[BUFFER_SIZE];
+
+    gFileSize = FileReader::getFileSize(path);
+    gFileRead = 0;
 
     FileReader localFileRieader(path);
     BlockHandler localBlockHandler(ROOT); // ROOT is not needed
@@ -65,9 +84,11 @@ void startReading(const char *path) {
         if (!(localFileRieader.isPause())) {
             if (!(blockHandler->isFinished()) && blockHandler->isBufferEmpty()) {
                 uint16_t length = localFileRieader.getData(dataBuffer, BUFFER_SIZE);
+                gFileRead += length;
                 if (length > 0) {
                     blockHandler->fillBuffer(dataBuffer, length);
                 }
+                drawProgress();
             }
         }
         if (localFileRieader.isFinished() && blockHandler->isFinished()) {
@@ -78,11 +99,22 @@ void startReading(const char *path) {
 
 tPath gPathFile = "/";
 uint16_t gPosition = 0;
+void (*int0Functor)() = nullptr;
+void (*int1Functor)() = nullptr;
 
 void loop()
 {
+    int0Functor = MenuInt0Handler;
+    int1Functor = MenuInt1Handler;
     bool isNeededToLoad = getPathFile(gScreenPtr, gPathFile, gPosition);
-    drawBMP(gScreenPtr, gPathFile);
+
+    int0Functor = BMPDrawerInt0Handler;
+    int1Functor = BMPDrawerInt1Handler;
+    drawBMP(gScreenPtr, gPathFile, !isNeededToLoad);
+
+    int0Functor = nullptr;
+    int1Functor = nullptr;
+
     if (isNeededToLoad) {
         startReading(gPathFile);
     }
@@ -115,5 +147,19 @@ ISR(TIMER1_COMPA_vect)
 
         // initialize the timer now do not waste time
         Timer1::instance().init(nextPeriod);
+    }
+}
+
+ISR(INT0_vect)
+{
+    if (int0Functor) {
+        int0Functor();
+    }
+}
+
+ISR(INT1_vect)
+{
+    if (int1Functor) {
+        int1Functor();
     }
 }

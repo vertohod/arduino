@@ -31,6 +31,7 @@ public:
     bool isPause();
     void readContinue();
     bool isFinished();
+    static uint32_t getFileSize(const char *path);
 };
 
 #endif

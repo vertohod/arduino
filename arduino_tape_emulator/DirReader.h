@@ -1,14 +1,12 @@
 #ifndef DIR_READER_H
 #define DIR_READER_H
 
-#include "Arduino.h"
-#include "SPI.h"
-#include "SD.h"
+#include <Arduino.h>
+#include <SPI.h>
+#include <SD.h>
+#include "Types.h"
 
 #define MENU_LENGTH 7
-#define FILENAME_LENGTH 14
-
-typedef char tFileName[FILENAME_LENGTH]; 
 
 struct tFileInfo {
     tFileName   fileName;

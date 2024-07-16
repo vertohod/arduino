@@ -1,9 +1,9 @@
 #ifndef TIMER1_H
 #define TIMER1_H
 
-#include "Types.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "Types.h"
 
 #define TIMER_FRQ_Hz 16000000.0
 #define MAX_OCR1A 65535.0

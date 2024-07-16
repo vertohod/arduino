@@ -3,7 +3,7 @@
 
 #include "Types.h"
 
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 16
 
 // Signal duration in ticks
 #define PILOT_SGN       2168
@@ -22,9 +22,9 @@ class BlockHandler
 {
 private:
     byte        mBufferIn[BUFFER_SIZE];
-    uint16_t    mLengthIn;
     byte        mBufferOut[BUFFER_SIZE];
-    uint16_t    mLengthOut;
+    uint8_t     mLengthIn;
+    uint8_t     mLengthOut;
 
     enum STAGE
     {
@@ -38,7 +38,7 @@ private:
         FINISH
     };
 
-    uint16_t        mIndexByte;
+    uint8_t         mIndexByte;
     byte            mMask;
     byte            mCurrentByte;
 

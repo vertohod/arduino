@@ -76,12 +76,16 @@ void startReading(const char *path) {
     }
 }
 
+tPath gPathFile = "/";
+uint16_t gPosition = 0;
+
 void loop()
 {
-    char* path = getPathFile(gScreenPtr, "/");
-
-//    drawBMP(gScreenPtr, path);
-    startReading(path);
+    bool isNeededToLoad = getPathFile(gScreenPtr, gPathFile, gPosition);
+    drawBMP(gScreenPtr, gPathFile);
+    if (isNeededToLoad) {
+        startReading(gPathFile);
+    }
 }
 
 // ---------- Interuptrs Handlers ------------

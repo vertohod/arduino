@@ -2,24 +2,27 @@
 
 #define TWO_POINTS ".."
 #define KILOBYTE "KB"
+#define MENU_TIMEOUT 1000000
 
 Menu* gMenuPtr = nullptr;
-tPath gPathFile;
 
-char* getPathFile(Adafruit_ILI9341 *screenPtr, const char* path) {
-    Menu localMenu(screenPtr, path);
+bool getPathFile(Adafruit_ILI9341 *screenPtr, char* path, uint16_t& position) {
+    Menu localMenu(screenPtr, path, position);
     gMenuPtr = &localMenu;
 
     // Enable INT0, INT1
     EICRA = 1 << ISC11 | 1 << ISC10 | 1 << ISC01 | 1 << ISC00;
     EIMSK = 1 << INT1 | 1 << INT0;
 
+    bool result = false;
     bool buttonIsClicked = false;
     while (true) {
         if (!(PIND & B00100000)) {
             if (!buttonIsClicked) {
                 buttonIsClicked = true;
-                if (gMenuPtr->clickHandler()) {
+                if (gMenuPtr->clickHandler(false)) {
+                    position = gMenuPtr->getPosition();
+                    result = true;
                     break;
                 } else {
                     gMenuPtr->updateMenu();
@@ -28,23 +31,38 @@ char* getPathFile(Adafruit_ILI9341 *screenPtr, const char* path) {
         } else {
             buttonIsClicked = false;
         }
+        if (gMenuPtr->checkTimeout()) {
+            if (gMenuPtr->clickHandler(true)) {
+                position = gMenuPtr->getPosition();
+                result = false;
+                break;
+            } else {
+                gMenuPtr->clearTimeout();
+            }
+        }
     }
-
     // Disable INT0, INT1
     EICRA = 0; 
     EIMSK = 0; 
 
-    return &gPathFile[0];
+    return result;
 }
 
-Menu::Menu(Adafruit_ILI9341 *screenPtr, const char* path) : mMenuDrawer(screenPtr)
+Menu::Menu(Adafruit_ILI9341 *screenPtr, char* path, uint16_t position)
+    : mMenuDrawer(screenPtr)
+    , mPath(path)
 {
-    memcpy(static_cast<void*>(&mPath[0]), static_cast<const void*>(path), strlen(path) + 1);
-
     mMenuDrawer.setTextSize(2);
 
-    mCurrentPosition = 0;
-    mUpVisiblePosition = 0;
+    uint16_t length = strlen(path);
+    if (path[length - 1] != '/') {
+        uint16_t lastSlash = getLastSlash(path);
+        path[lastSlash + 1] = 0;
+    }
+
+    mTimeoutCounter = MENU_TIMEOUT;
+    mUpVisiblePosition = (position / MENU_LENGTH) * MENU_LENGTH;
+    mCurrentPosition = position % MENU_LENGTH;
     mFilesAmount = 0;
     mEncoderInt0 = false;
     mEncoderInt1 = false;
@@ -58,7 +76,7 @@ void Menu::updateMenu()
     menuDraw();
 }
 
-void Menu::getChosenItem(char result[FILENAME_LENGTH]) {
+void Menu::getChosenItem(char* result) {
     for (uint8_t i = 0; i < MENU_LENGTH; ++i) {
         if (mCurrentPosition == i) {
             char* fileName = mFileNameList[i].fileName;
@@ -99,43 +117,50 @@ void Menu::stepDn() {
     }
 }
 
-bool Menu::clickHandler() {
+bool Menu::clickHandler(bool checkOnly) {
     char fileName[FILENAME_LENGTH];
-    uint16_t prevSlashIndex = 0;
-    uint16_t pathLength = strlen(mPath);
-    uint16_t fileNameLength = 0; 
-    getChosenItem(fileName);
-    fileNameLength = strlen(fileName);
+    getChosenItem(&fileName[0]);
+    uint16_t fileNameLength = strlen(fileName);
     if (isStrEq(fileName, TWO_POINTS)) {
-        prevSlashIndex = getPrevSlash(mPath);
-        // truncate
-        mPath[prevSlashIndex + 1] = 0;
-        mCurrentPosition = 0;
+        if (!checkOnly) {
+            uint16_t prevSlashIndex = getPrevSlash(mPath);
+            // truncate
+            mPath[prevSlashIndex + 1] = 0;
+            mCurrentPosition = 0;
+        }
     } else if (fileNameLength > 0 && fileName[fileNameLength - 1] == '/') {
-        memcpy(static_cast<void*>(&mPath[pathLength]), static_cast<void*>(&fileName[0]), fileNameLength + 1);
-        mCurrentPosition = 0;
+        if (!checkOnly) {
+            uint16_t pathLength = strlen(mPath);
+            memcpy(static_cast<void*>(&mPath[pathLength]), static_cast<void*>(&fileName[0]), fileNameLength + 1);
+            mCurrentPosition = 0;
+        }
     } else {
-        memcpy(static_cast<void*>(&gPathFile[0]), static_cast<void*>(&mPath[0]), pathLength);
-        memcpy(static_cast<void*>(&gPathFile[pathLength]), static_cast<void*>(&fileName[0]), fileNameLength + 1);
+        uint16_t pathLength = strlen(mPath);
+        memcpy(static_cast<void*>(&mPath[0]), static_cast<void*>(&mPath[0]), pathLength);
+        memcpy(static_cast<void*>(&mPath[pathLength]), static_cast<void*>(&fileName[0]), fileNameLength + 1);
         return true;
     }
     return false;
 }
 
-uint16_t Menu::getPrevSlash(const char* path)
-{
+uint16_t Menu::getPosition() {
+    return mUpVisiblePosition + mCurrentPosition;
+}
+
+uint16_t Menu::getLastSlash(const char* path, uint16_t length) {
     uint16_t lastSlashIndex = 0;
-    uint16_t prevSlashIndex = 0;
-    uint16_t strLen = strlen(path);
+    uint16_t strLen = length > 0 ? length : strlen(path);
     for (uint16_t i = 0; i < strLen; ++i) {
         if (path[i] == '/') {
-            if (0 != lastSlashIndex) {
-                prevSlashIndex = lastSlashIndex;
-            }
             lastSlashIndex = i;
         }
     }
-    return prevSlashIndex;
+    return lastSlashIndex;
+}
+
+uint16_t Menu::getPrevSlash(const char* path) {
+    uint16_t lastSlashIndex = getLastSlash(path); 
+    return getLastSlash(path, lastSlashIndex - 1);
 }
 
 bool Menu::isStrEq(const char* str1, const char* str2)
@@ -156,6 +181,15 @@ bool Menu::isStrEq(const char* str1, const char* str2)
         }
     } 
     return true;
+}
+
+void Menu::clearTimeout() {
+    mTimeoutCounter = MENU_TIMEOUT;
+}
+
+bool Menu::checkTimeout() {
+    --mTimeoutCounter;
+    return 0 == mTimeoutCounter;
 }
 
 void Menu::menuDraw(bool quickDraw, bool superQuick) {
@@ -206,6 +240,7 @@ void Menu::menuDraw(bool quickDraw, bool superQuick) {
 
 ISR(INT0_vect)
 {
+    gMenuPtr->clearTimeout();
     if (gMenuPtr->mEncoderInt1) {
         gMenuPtr->mEncoderInt1 = false;
         gMenuPtr->stepUp();
@@ -216,6 +251,7 @@ ISR(INT0_vect)
 
 ISR(INT1_vect)
 {
+    gMenuPtr->clearTimeout();
     if (gMenuPtr->mEncoderInt0) {
         gMenuPtr->mEncoderInt0 = false;
         gMenuPtr->stepDn();

@@ -59,10 +59,7 @@ void drawProgress() {
         uint16_t width = static_cast<float>(gFileRead) / gFileSize * gScreenPtr->width();
         uint16_t xPosition = width > 4 ? width - 4 : 0;
         width = width > 4 ? 4 : width;
-        gScreenPtr->startWrite();
         gScreenPtr->fillRect(xPosition, yPosition, width, SYMBOL_HEIGHT * TEXT_SIZE * 2, ILI9341_WHITE);
-        gScreenPtr->dmaWait();
-        gScreenPtr->endWrite();
     }
 }
 

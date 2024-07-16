@@ -109,17 +109,14 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
 
         mScreenPtr->startWrite();
         mScreenPtr->setAddrWindow(xPosition, yPosition, mScreenPtr->width(), bmpHeight);
+        mScreenPtr->dmaWait();
+        mScreenPtr->endWrite();
 
         for (uint16_t yCounter = 0; yCounter < bmpHeight; ++yCounter) {
             uint32_t filePosition = offset + (bmpHeight - yCounter - 1) * bmpWidth / 2;
-            mScreenPtr->dmaWait();
-            mScreenPtr->endWrite();
             mFile.seek(filePosition);
             for (uint16_t xCounter = 0; xCounter < bmpWidth;) {
-                mScreenPtr->dmaWait();
-                mScreenPtr->endWrite();
                 mFile.read(&buffer[0], IMAGE_BUFFER_SIZE);
-
                 uint16_t index = 0;
                 for (uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i) {
                     byte data = buffer[i];
@@ -133,7 +130,8 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
                 }
                 mScreenPtr->startWrite();
                 mScreenPtr->writePixels(&outBuffer[0], index + 1, true);
-
+                mScreenPtr->dmaWait();
+                mScreenPtr->endWrite();
                 xCounter += IMAGE_BUFFER_SIZE * 2;
             }
         }
@@ -165,6 +163,16 @@ uint16_t BMPDrawer::getLastPoint(const char* path) {
         }
     }
     return lastPointIndex;
+}
+
+bool BMPDrawer::isItBMPFile(const char *path) {
+    auto lastPoint = getLastPoint(path);
+    if (lastPoint != 0) {
+        if (0 == strcmp(&path[lastPoint + 1], EXTENSION_BMP)) {
+            return true; 
+        }   
+    } 
+    return false;
 }
 
 void BMPDrawerInt0Handler() {

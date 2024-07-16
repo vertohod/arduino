@@ -1,4 +1,5 @@
 #include "DirReader.h"
+#include "BMPDrawer.h"
 
 #define SLASH '/'
 #define TWO_POINTS ".."
@@ -19,10 +20,13 @@ uint8_t DirReader::getFileNameList(const char* path, uint16_t position, tFileNam
 }
 
 bool DirReader::skipFiles(File& directory, uint16_t position) {
-    for (uint16_t i = 0; i < position; ++i) {
+    for (uint16_t counter = 0; counter < position;) {
         auto file = directory.openNextFile();
         if (!file) {
             return false;
+        }
+        if (!BMPDrawer::isItBMPFile(file.name())) {
+            ++counter;
         }
         file.close();
     }
@@ -41,6 +45,10 @@ uint8_t DirReader::readFiles(File& directory, tFileNameList& fileNameList, bool 
         auto file = directory.openNextFile();
         if (!file) {
             return counter;
+        }
+        if (BMPDrawer::isItBMPFile(file.name())) {
+            file.close();
+            continue;
         }
         const char* fileNameSrc = file.name();
         auto fileNameSrcSize = strlen(fileNameSrc);

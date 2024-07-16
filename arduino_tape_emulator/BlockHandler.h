@@ -64,7 +64,7 @@ public:
     void stop();
     bool getBit();
     bool getLevel();
-    double getPeriod();
+    float getPeriod();
     bool isPilot();
     bool isFinished();
 };

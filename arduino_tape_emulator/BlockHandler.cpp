@@ -112,9 +112,9 @@ bool BlockHandler::getLevel()
     }
 }
 
-double BlockHandler::getPeriod()
+float BlockHandler::getPeriod()
 {
-    return static_cast<double>(mPeriod) / Z80_FRQ_Hz * 2;
+    return static_cast<float>(mPeriod) / Z80_FRQ_Hz * 2;
 }
 
 bool BlockHandler::isPilot()

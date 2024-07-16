@@ -5,18 +5,18 @@ class DurationCounter
 {
 private:
     bool mEnabled;
-    double mDuration;
+    float mDuration;
 
 public:
     DurationCounter() : mEnabled(false), mDuration(0.0){}
-    void set(double duration) {
+    void set(float duration) {
         mDuration = duration;
         mEnabled = duration != 0.0;
     }
     bool enabled() {
         return mEnabled;
     }
-    bool check(double period) {
+    bool check(float period) {
         if (mDuration <= period) {
             mEnabled = false;
             return true;

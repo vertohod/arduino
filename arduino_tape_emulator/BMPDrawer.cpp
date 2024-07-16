@@ -47,7 +47,7 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
             palette[counter] = static_cast<uint16_t>((red & 0x00F8) << 8) | static_cast<uint16_t>((green & 0x00FC) << 3) | static_cast<uint16_t>(blue >> 3);
         }
 
-        double factor = static_cast<double>(mScreenPtr->width()) / bmpWidth;
+        float factor = static_cast<float>(mScreenPtr->width()) / bmpWidth;
 
         mScreenPtr->startWrite();
         mScreenPtr->setAddrWindow(xPosition, yPosition, mScreenPtr->width(), bmpHeight);
@@ -68,9 +68,9 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
                     byte fourBitsHi = data >> 4;
                     byte fourBitsLo = data & 0x0f;
 
-                    index = static_cast<uint16_t>(static_cast<double>(i * 2) * factor);
+                    index = static_cast<uint16_t>(static_cast<float>(i * 2) * factor);
                     outBuffer[index] = palette[fourBitsHi];
-                    index = static_cast<uint16_t>(static_cast<double>(i * 2 + 1) * factor);
+                    index = static_cast<uint16_t>(static_cast<float>(i * 2 + 1) * factor);
                     outBuffer[index] = palette[fourBitsLo];
                 }
                 mScreenPtr->startWrite();

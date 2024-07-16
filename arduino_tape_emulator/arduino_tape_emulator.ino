@@ -19,9 +19,6 @@
 Adafruit_ILI9341 *gScreenPtr = nullptr;
 
 void setup() {
-    Serial.begin(115200);
-    Serial.println(F("setup"));
-
     gScreenPtr = new Adafruit_ILI9341(TFT_CS, TFT_DC);
     if (!SD.begin(SD_CS)) {
         while(true);
@@ -33,7 +30,7 @@ void setup() {
 FileReader *fileReader = nullptr;
 BlockHandler *blockHandler = nullptr;
 bool nextLevelUp = false;
-double nextPeriod = 0.0;
+float nextPeriod = 0.0;
 byte* dataBuffer = nullptr;
 
 void initReading()
@@ -83,7 +80,7 @@ void loop()
 {
     char* path = getPathFile(gScreenPtr, "/");
 
-    drawBMP(gScreenPtr, path);
+//    drawBMP(gScreenPtr, path);
     startReading(path);
 }
 

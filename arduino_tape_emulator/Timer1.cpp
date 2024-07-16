@@ -2,7 +2,7 @@
 
 Timer1::Timer1() : mPrescaling(0), mOCR1A(0), mDuration(0.0) {}
 
-void Timer1::init(double duration)
+void Timer1::init(float duration)
 {
     mDuration = duration;
 
@@ -26,7 +26,7 @@ void Timer1::init(double duration)
     }
 }
 
-double Timer1::duration()
+float Timer1::duration()
 {
     return mDuration;
 }

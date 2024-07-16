@@ -18,7 +18,7 @@ class Timer1
 private:
     byte mPrescaling;
     uint16_t mOCR1A;
-    double mDuration;
+    float mDuration;
 
 private:
     Timer1();
@@ -31,8 +31,8 @@ public:
     Timer1(Timer1 const&) = delete;
     void operator=(Timer1 const&) = delete;
 
-    void init(double duration);
-    double duration();
+    void init(float duration);
+    float duration();
     void start();
     void stop();
 };

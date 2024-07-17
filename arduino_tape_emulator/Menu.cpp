@@ -1,7 +1,6 @@
 #include "Menu.h"
 #include "SwitchExceptions.h"
 
-#define TWO_POINTS ".."
 #define KILOBYTE "KB"
 #define MENU_TIMEOUT 1000000
 
@@ -33,7 +32,6 @@ bool getPathFile(Adafruit_ILI9341 &screen, char* path, uint16_t& position) {
         if (gMenuPtr->checkTimeout()) {
             if (gMenuPtr->clickHandler(true)) {
                 position = gMenuPtr->getPosition();
-                result = false;
                 break;
             } else {
                 gMenuPtr->clearTimeout();
@@ -49,8 +47,6 @@ Menu::Menu(Adafruit_ILI9341 &screen, char* path, uint16_t position)
     : mMenuDrawer(screen)
     , mPath(path)
 {
-    mMenuDrawer.setTextSize(2);
-
     uint16_t length = strlen(path);
     if (path[length - 1] != '/') {
         uint16_t lastSlash = getLastSlash(path);
@@ -60,7 +56,6 @@ Menu::Menu(Adafruit_ILI9341 &screen, char* path, uint16_t position)
     mTimeoutCounter = MENU_TIMEOUT;
     mUpVisiblePosition = (position / MENU_LENGTH) * MENU_LENGTH;
     mCurrentPosition = position % MENU_LENGTH;
-    mFilesAmount = 0;
     mEncoderInt0 = false;
     mEncoderInt1 = false;
 
@@ -118,7 +113,7 @@ bool Menu::clickHandler(bool checkOnly) {
     char fileName[FILENAME_LENGTH];
     getChosenItem(&fileName[0]);
     uint16_t fileNameLength = strlen(fileName);
-    if (isStrEq(fileName, TWO_POINTS)) {
+    if (0 == strcmp(&fileName[0], TWO_POINTS)) {
         if (!checkOnly) {
             uint16_t prevSlashIndex = getPrevSlash(mPath);
             // truncate
@@ -145,39 +140,18 @@ uint16_t Menu::getPosition() {
 }
 
 uint16_t Menu::getLastSlash(const char* path, uint16_t length) {
-    uint16_t lastSlashIndex = 0;
-    uint16_t strLen = length > 0 ? length : strlen(path);
-    for (uint16_t i = 0; i < strLen; ++i) {
+    uint16_t i = length > 0 ? length : strlen(path);
+    while (0 < --i) {
         if (path[i] == '/') {
-            lastSlashIndex = i;
+            return i;
         }
     }
-    return lastSlashIndex;
+    return 0;
 }
 
 uint16_t Menu::getPrevSlash(const char* path) {
     uint16_t lastSlashIndex = getLastSlash(path); 
     return getLastSlash(path, lastSlashIndex - 1);
-}
-
-bool Menu::isStrEq(const char* str1, const char* str2)
-{
-    uint16_t len1;
-    uint16_t len2;
-    len1 = strlen(str1);
-    len2 = strlen(str2);
-    if (len1 != len2) {
-        return false;
-    }
-    if (len1 == 0) {
-        return true;
-    }
-    for (uint16_t i = 0; i < len1; ++i) {
-        if (str1[i] != str2[i]) {
-            return false;
-        }
-    } 
-    return true;
 }
 
 void Menu::clearTimeout() {
@@ -189,7 +163,7 @@ bool Menu::checkTimeout() {
     return 0 == mTimeoutCounter;
 }
 
-void Menu::menuDraw(bool quickDraw, bool superQuick) {
+void Menu::menuDraw(bool quickDraw) {
     char textNumber[9];
 
     if (!quickDraw) {
@@ -221,17 +195,15 @@ void Menu::menuDraw(bool quickDraw, bool superQuick) {
             }
             memcpy(static_cast<void*>(&textOutput[sizePosition]), static_cast<const void*>(&textNumber[0]), strlen(textNumber));
         }
-
+        auto active = mCurrentPosition == i;
         if (quickDraw) {
-            mMenuDrawer.quickDrawItem(textOutput, i, mCurrentPosition == i, !superQuick);
+            mMenuDrawer.quickDrawItem(textOutput, i, active);
         } else {
-            mMenuDrawer.drawItem(textOutput, i, mCurrentPosition == i);
+            mMenuDrawer.drawItem(textOutput, i, active);
         }
     }
-    if (mFilesAmount < MENU_LENGTH) {
-        for (auto i = mFilesAmount; i < MENU_LENGTH; ++i) {
-            mMenuDrawer.drawItem("", i, false);
-        }
+    for (auto i = mFilesAmount; i < MENU_LENGTH; ++i) {
+        mMenuDrawer.drawItem("", i, false);
     }
 }
 

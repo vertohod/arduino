@@ -45,24 +45,21 @@ BMPDrawer::BMPDrawer(Adafruit_ILI9341 &screen) : mScreen(screen) {
 }
 
 void BMPDrawer::drawFileInfo(const char *path) {
-    mScreen.setTextSize(TEXT_SIZE);
     mScreen.setTextColor(ILI9341_WHITE);
     File file = SD.open(path);
     uint16_t length = strlen(file.name());
-    uint32_t fileSize = file.size();
 
     uint16_t xPosition = (mScreen.width() - length * SYMBOL_WIDTH * TEXT_SIZE) / 2;
     uint16_t yPosition = static_cast<float>(SYMBOL_HEIGHT * TEXT_SIZE) * MARGIN_MUL;
     mScreen.setCursor(xPosition, yPosition);
     mScreen.println(file.name());
-    file.close();
 
     yPosition += static_cast<float>(SYMBOL_HEIGHT * TEXT_SIZE * 2 + 2);
     mScreen.setCursor(0, yPosition);
     mScreen.println(F("Size: "));
 
     xPosition = mScreen.width() - SYMBOL_WIDTH * TEXT_SIZE * (strlen(TEXT_BYTES) + 2);
-    auto sizeByte = fileSize;
+    auto sizeByte = file.size();
     for(;;) {
         sizeByte = sizeByte / 10;
         if (sizeByte > 0) {
@@ -72,20 +69,18 @@ void BMPDrawer::drawFileInfo(const char *path) {
         }
     }
     mScreen.setCursor(xPosition, yPosition);
-    mScreen.println(fileSize);
+    mScreen.println(file.size());
     xPosition = mScreen.width() - SYMBOL_WIDTH * TEXT_SIZE * strlen(TEXT_BYTES);
     mScreen.setCursor(xPosition, yPosition);
     mScreen.println(TEXT_BYTES);
 
     yPosition += static_cast<float>(SYMBOL_HEIGHT * TEXT_SIZE * 2 + 2);
     mScreen.drawRect(0, yPosition, mScreen.width(), SYMBOL_HEIGHT * TEXT_SIZE, ILI9341_WHITE);
+    file.close();
 }
 
 void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
-    uint32_t offset = 0;                        // Start of image data in file
-    uint32_t headerSize = 0;                    // Indicates BMP version
-    uint16_t bmpWidth = 0, bmpHeight = 0;       // BMP width & height in pixels
-    uint16_t palette[PALETTE_SIZE];             // 16-bit 5/6/5 color palette
+    uint16_t palette[PALETTE_SIZE]; // 16-bit 5/6/5 color palette
     byte buffer[IMAGE_BUFFER_SIZE];
     uint16_t outBuffer[IMAGE_BUFFER_SIZE * 2];
 
@@ -97,13 +92,13 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
     if (readLE16() == 0x4D42) {     // BMP signature
         readLE32();                 // Read & ignore file size
         readLE32();                 // Read & ignore creator bytes
-        offset = readLE32();        // Start of image data
+        auto offset = readLE32();   // Start of image data
 
         // Read DIB header
-        headerSize = readLE32();
-        bmpWidth = readLE32();
+        uint32_t headerSize = readLE32();
+        uint16_t bmpWidth = readLE32();
         int height = readLE32();
-        bmpHeight = height < 0 ? -height : height;
+        uint16_t bmpHeight = height < 0 ? -height : height;
 
         mFile.seek(14 + headerSize);
         for (uint16_t counter = 0; counter < PALETTE_SIZE; ++counter) {
@@ -148,10 +143,6 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
     mFile.close();
 }
 
-void BMPDrawer::drawPixel(uint16_t xPosition, uint16_t yPosition, uint16_t color) {
-    mScreen.writePixel(xPosition, yPosition, color);
-}
-
 uint16_t BMPDrawer::readLE16() {
   return static_cast<uint16_t>(mFile.read()) | static_cast<uint16_t>(mFile.read()) << 8;
 }
@@ -164,23 +155,20 @@ uint32_t BMPDrawer::readLE32() {
 }
 
 uint16_t BMPDrawer::getLastPoint(const char* path) {
-    uint16_t lastPointIndex = 0;
-    uint16_t strLen = strlen(path);
-    for (uint16_t i = 0; i < strLen; ++i) {
+    uint16_t i = strlen(path);
+    while (0 < --i) {
         if (path[i] == '.') {
-            lastPointIndex = i;
+            return i;
         }
     }
-    return lastPointIndex;
+    return 0;
 }
 
 bool BMPDrawer::isItBMPFile(const char *path) {
     auto lastPoint = getLastPoint(path);
-    if (lastPoint != 0) {
-        if (0 == strcmp(&path[lastPoint + 1], EXTENSION_BMP)) {
-            return true; 
-        }   
-    } 
+    if (0 == strcmp(&path[lastPoint + 1], EXTENSION_BMP)) {
+        return true; 
+    }   
     return false;
 }
 

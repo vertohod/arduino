@@ -1,25 +1,30 @@
 #include "FileReader.h" 
 
-FileReader::FileReader(const char* fileName, uint32_t filePosition)
-    : mFilePosition(filePosition)
-    , mFileSize(0)
-    , mLastBlock(0)
-    , mBlockType(0)
+FileReader::FileReader(const char* fileName)
+    : mBlockType(0)
     , mBlockTypeKnown(false)
     , mBlockSize(0)
     , mBlockRead(0)
+    , mLastBlock(0)
     , mState(STATE::READING)
 {
     mFile = SD.open(fileName);
-    mFileSize = mFile.size();
-
-    if (0 < mFilePosition) {
-        mFile.seek(mFilePosition);
-    }
 }
 
 FileReader::~FileReader() {
     mFile.close();
+}
+
+uint32_t FileReader::getFilePosition() {
+    return mFile.position();
+}
+
+uint32_t FileReader::getFileSize() {
+    return mFile.size();
+}
+
+uint32_t FileReader::getLastBlock() {
+    return mLastBlock;
 }
 
 uint16_t FileReader::getBlockSize() {
@@ -38,6 +43,7 @@ uint16_t FileReader::getBlockSize() {
 uint16_t FileReader::getData(byte *buffer, uint16_t buffer_size) {
     if (mState != STATE::READING) return 0;
 
+    auto lastPosition = mFile.position();
     if (mBlockSize == 0) {
         mBlockSize = getBlockSize();
     }
@@ -59,13 +65,15 @@ uint16_t FileReader::getData(byte *buffer, uint16_t buffer_size) {
         if (!mBlockTypeKnown) {
             mBlockType = buffer[0];
             mBlockTypeKnown = true;
+            if (0 == mBlockType) {
+                mLastBlock = lastPosition;
+            }
         }
         if (mBlockRead == mBlockSize) {
             setPause();
             break;
         }
     }
-    mFilePosition += counter;
     return counter;
 }
 
@@ -89,28 +97,13 @@ void FileReader::readContinue(uint32_t position) {
         mBlockRead = 0;
         mState = STATE::READING;
 
-        if (0 == position) {
-            mLastBlock = mFilePosition;
-        } else {
+        if (0 != position) {
             mLastBlock = position;
-            mFilePosition = position;
-            mFile.seek(mFilePosition);
+            mFile.seek(position);
         }
     }
 }
 
 bool FileReader::isFinished() {
     return STATE::END == mState;
-}
-
-uint32_t FileReader::getFilePosition() {
-    return mFilePosition;
-}
-
-uint32_t FileReader::getFileSize() {
-    return mFileSize;
-}
-
-uint32_t FileReader::getLastBlock() {
-    return mLastBlock;
 }

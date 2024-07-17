@@ -7,16 +7,11 @@
 MenuDrawer::MenuDrawer(Adafruit_ILI9341 &screen) : mScreen(screen)
 {
     mScreen.fillScreen(ILI9341_BLACK);
-}
 
-void MenuDrawer::setTextSize(uint8_t textSize)
-{
-    mTextHeight = textSize * SYMBOL_HEIGHT;
+    mTextHeight = SYMBOL_HEIGHT * TEXT_SIZE;
     mMargin = static_cast<float>(mTextHeight) * MARGIN_MUL;
     mItemHeight = mTextHeight + mMargin * 2;
     mTopPosition = mItemHeight + 1;
-
-    mScreen.setTextSize(textSize);
 }
 
 void MenuDrawer::setHeader(const char* text) {

@@ -36,14 +36,13 @@ public:
     uint16_t getPosition();
     static uint16_t getLastSlash(const char* path, uint16_t length = 0);
     static uint16_t getPrevSlash(const char* path);
-    static bool isStrEq(const char* str1, const char* str2);
 
     void clearTimeout();
     bool checkTimeout();
 
 private:
     void getChosenItem(char* result);
-    void menuDraw(bool quickDraw = false, bool superQuick = false);
+    void menuDraw(bool quickDraw = false);
 };
 
 #endif

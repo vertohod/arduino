@@ -23,7 +23,6 @@ public:
     static bool isItBMPFile(const char *path);
 
 private:
-    void drawPixel(uint16_t xPosition, uint16_t yPosition, uint16_t color);
     uint16_t readLE16();
     uint32_t readLE32();
 };

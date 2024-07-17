@@ -18,13 +18,12 @@ private:
 
 public:
     MenuDrawer(Adafruit_ILI9341 &screen);
-    void setTextSize(uint8_t textSize);
     void setHeader(const char* text);
     inline void drawItem(const char* text, uint16_t position, bool active) {
         draw(text, position, active, true, true);
     }
-    inline void quickDrawItem(const char* text, uint16_t position, bool active, bool fillAll) {
-        draw(text, position, active, fillAll);
+    inline void quickDrawItem(const char* text, uint16_t position, bool active) {
+        draw(text, position, active, true);
     }
 private:
     void draw(const char* text, uint16_t position, bool active, bool fillAll = false, bool drawLine = false);

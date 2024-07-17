@@ -2,7 +2,6 @@
 #include "BMPDrawer.h"
 
 #define SLASH '/'
-#define TWO_POINTS ".."
 
 uint8_t DirReader::getFileNameList(const char* path, uint16_t position, tFileNameList& fileNameList) {
     // Open
@@ -51,7 +50,7 @@ uint8_t DirReader::readFiles(File& directory, tFileNameList& fileNameList, bool 
             continue;
         }
         const char* fileNameSrc = file.name();
-        auto fileNameSrcSize = strlen(fileNameSrc);
+        auto fileNameSrcSize = strlen(file.name());
         tFileInfo& fileInfoDist = fileNameList[counter];
         memcpy(static_cast<void*>(&fileInfoDist.fileName[0]), static_cast<const void*>(fileNameSrc), fileNameSrcSize + 1);
         if (file.isDirectory()) {

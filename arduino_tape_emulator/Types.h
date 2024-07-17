@@ -10,6 +10,7 @@
 #define FILENAME_LENGTH     14
 #define EXTENSION_BMP       "BMP"
 #define TAPE_BUFFER_SIZE    64
+#define TWO_POINTS          ".."
 
 typedef uint8_t byte;
 typedef char tPath[(FILENAME_LENGTH + 1) * 2];

@@ -24,12 +24,13 @@ void setup() {
     // Enable output to port D
     DDRD = B00010000;
     gScreen.begin();
+    gScreen.setTextSize(TEXT_SIZE);
 }
 
 FileReader *fileReader = nullptr;
 BlockHandler *blockHandler = nullptr;
-bool nextLevelUp = false;
-float nextPeriod = 0.0;
+bool gNextLevelUp = false;
+float gNextPeriod = 0.0;
 byte* gDataBufferPtr = nullptr;
 
 void initReading()
@@ -40,23 +41,22 @@ void initReading()
         blockHandler->start(fileReader->getBlockType());
 
         // initialization
-        nextLevelUp = blockHandler->getLevel();
-        nextPeriod = blockHandler->getPeriod();
+        gNextLevelUp = blockHandler->getLevel();
+        gNextPeriod = blockHandler->getPeriod();
 
         // just launch the process with some period
-        Timer1::instance().init(nextPeriod);
+        Timer1::instance().init(gNextPeriod);
         Timer1::instance().start();
     }
 }
 
 void drawProgress() {
-    uint16_t yPosition = SYMBOL_HEIGHT * TEXT_SIZE * MARGIN_MUL;
-    yPosition += (SYMBOL_HEIGHT * TEXT_SIZE + 1) * 4;
+    uint16_t yPosition = SYMBOL_HEIGHT * TEXT_SIZE * MARGIN_MUL + (SYMBOL_HEIGHT * TEXT_SIZE + 1) * 4;
     uint16_t width = static_cast<float>(fileReader->getFilePosition()) / fileReader->getFileSize() * gScreen.width();
-    uint16_t xPosition = width > 4 ? width - 4 : 0;
-    width = width > 4 ? 4 : width;
-    gScreen.fillRect(xPosition, yPosition, width, SYMBOL_HEIGHT * TEXT_SIZE, ILI9341_WHITE);
+    gScreen.fillRect(width > 4 ? width - 4 : 0, yPosition, width > 4 ? 4 : width, SYMBOL_HEIGHT * TEXT_SIZE, ILI9341_WHITE);
 }
+
+volatile bool gFlipFlop = false;
 
 void startReading(const char *path) {
     byte localDataBuffer[TAPE_BUFFER_SIZE];
@@ -69,13 +69,14 @@ void startReading(const char *path) {
     gDataBufferPtr = localDataBuffer;
 
     initReading();
+    gFlipFlop = false;
     uint32_t filePosition = 0;
     bool buttonIsClicked = false;
     while (true) {
         if (!(PIND & B00100000)) {
             if (!buttonIsClicked) {
                 buttonIsClicked = true;
-                if (0 == filePosition) {
+                if (!gFlipFlop) {
                     fileReader->setPause();
                     filePosition = fileReader->getLastBlock();
                     blockHandler->init();
@@ -84,6 +85,7 @@ void startReading(const char *path) {
                     initReading();
                     filePosition = 0;
                 }
+                gFlipFlop = !gFlipFlop;
             }
         } else {
             buttonIsClicked = false;
@@ -132,7 +134,7 @@ DurationCounter dc;
 
 ISR(TIMER1_COMPA_vect)
 {
-    if (!fileReader) {
+    if (!fileReader || gFlipFlop) {
         return;
     }
     if (fileReader->isPause() && blockHandler->isFinished()) {
@@ -149,14 +151,14 @@ ISR(TIMER1_COMPA_vect)
         }
     }
     if (!blockHandler->isFinished()) {
-        PORTD = nextLevelUp ? 0xff : 0x00;
+        PORTD = gNextLevelUp ? 0xff : 0x00;
         Timer1::instance().start();
 
-        nextLevelUp = blockHandler->getLevel();
-        nextPeriod = blockHandler->getPeriod();
+        gNextLevelUp = blockHandler->getLevel();
+        gNextPeriod = blockHandler->getPeriod();
 
         // initialize the timer now do not waste time
-        Timer1::instance().init(nextPeriod);
+        Timer1::instance().init(gNextPeriod);
     }
 }
 

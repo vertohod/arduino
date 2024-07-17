@@ -8,30 +8,36 @@
 class FileReader
 {
 private:
-    File mFile;
-    byte mBlockType;
-    byte mBlockTypeKnown;
-    uint16_t  mBlockSize;
-    uint16_t  mBlockRead;
+    uint32_t    mFilePosition;
+    uint32_t    mFileSize;
+    uint32_t    mLastBlock;
+    File        mFile;
+    byte        mBlockType;
+    byte        mBlockTypeKnown;
+    uint16_t    mBlockSize;
+    uint16_t    mBlockRead;
 
     enum STATE {
         READING,
         PAUSE,
         END
     };
-    STATE mState;
+    STATE       mState;
 
 public:
-    FileReader(const char* fileName); 
+    FileReader(const char* fileName, uint32_t filePosition = 0);
     ~FileReader();
 
     uint16_t getBlockSize();
     uint16_t getData(byte *buffer, uint16_t buffer_size);
     byte getBlockType();
+    void setPause();
     bool isPause();
-    void readContinue();
+    void readContinue(uint32_t position = 0);
     bool isFinished();
-    static uint32_t getFileSize(const char *path);
+    uint32_t getFilePosition();
+    uint32_t getFileSize();
+    uint32_t getLastBlock();
 };
 
 #endif

@@ -54,10 +54,10 @@ public:
     void fillBuffer(const byte* const buffer, uint16_t length);
 
 private:
-    void init();
     bool moveData();
 
 public:
+    void init();
     void start(byte type);
     void stop();
     bool getBit();

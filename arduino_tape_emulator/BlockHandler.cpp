@@ -1,6 +1,6 @@
 #include "BlockHandler.h"
 
-BlockHandler::BlockHandler(const char*) : mStage(STAGE::FINISH)
+BlockHandler::BlockHandler(const char*)
 {
     init();
 }
@@ -22,6 +22,7 @@ void BlockHandler::init()
     mLengthOut = 0;
     mIndexByte = 0;
     mMask = 0;
+    mStage = STAGE::FINISH;
     mCurrentBitOne = false;
     mMeanderUp = true;
     mPeriod = 0;

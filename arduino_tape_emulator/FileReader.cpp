@@ -1,22 +1,28 @@
 #include "FileReader.h" 
 
-FileReader::FileReader(const char* fileName)
-    : mBlockType(0)
+FileReader::FileReader(const char* fileName, uint32_t filePosition)
+    : mFilePosition(filePosition)
+    , mFileSize(0)
+    , mLastBlock(0)
+    , mBlockType(0)
     , mBlockTypeKnown(false)
     , mBlockSize(0)
     , mBlockRead(0)
     , mState(STATE::READING)
 {
     mFile = SD.open(fileName);
+    mFileSize = mFile.size();
+
+    if (0 < mFilePosition) {
+        mFile.seek(mFilePosition);
+    }
 }
 
-FileReader::~FileReader()
-{
+FileReader::~FileReader() {
     mFile.close();
 }
 
-uint16_t FileReader::getBlockSize()
-{
+uint16_t FileReader::getBlockSize() {
     byte firstByte = 0;
     byte secondByte = 0;
 
@@ -29,8 +35,7 @@ uint16_t FileReader::getBlockSize()
     return firstByte | secondByte << 8;
 }
 
-uint16_t FileReader::getData(byte *buffer, uint16_t buffer_size)
-{
+uint16_t FileReader::getData(byte *buffer, uint16_t buffer_size) {
     if (mState != STATE::READING) return 0;
 
     if (mBlockSize == 0) {
@@ -56,46 +61,56 @@ uint16_t FileReader::getData(byte *buffer, uint16_t buffer_size)
             mBlockTypeKnown = true;
         }
         if (mBlockRead == mBlockSize) {
-            mState = STATE::PAUSE;
+            setPause();
             break;
         }
     }
+    mFilePosition += counter;
     return counter;
 }
 
-byte FileReader::getBlockType()
-{
+byte FileReader::getBlockType() {
     return mBlockType;
 }
 
-bool FileReader::isPause()
-{
+void FileReader::setPause() {
+    mState = STATE::PAUSE;
+}
+
+bool FileReader::isPause() {
     return STATE::PAUSE == mState;
 }
 
-void FileReader::readContinue()
-{
+void FileReader::readContinue(uint32_t position) {
     if (isPause()) {
         mBlockType = 0;
         mBlockTypeKnown = false;
         mBlockSize = 0;
         mBlockRead = 0;
         mState = STATE::READING;
+
+        if (0 == position) {
+            mLastBlock = mFilePosition;
+        } else {
+            mLastBlock = position;
+            mFilePosition = position;
+            mFile.seek(mFilePosition);
+        }
     }
 }
 
-bool FileReader::isFinished()
-{
+bool FileReader::isFinished() {
     return STATE::END == mState;
 }
 
-uint32_t FileReader::getFileSize(const char *path)
-{
-    uint32_t result = 0;
-    File file = SD.open(path);
-    if (file) {
-        result = file.size();
-    }
-    file.close();
-    return result;
+uint32_t FileReader::getFilePosition() {
+    return mFilePosition;
+}
+
+uint32_t FileReader::getFileSize() {
+    return mFileSize;
+}
+
+uint32_t FileReader::getLastBlock() {
+    return mLastBlock;
 }

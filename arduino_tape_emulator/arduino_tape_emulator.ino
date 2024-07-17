@@ -31,13 +31,10 @@ BlockHandler *blockHandler = nullptr;
 bool nextLevelUp = false;
 float nextPeriod = 0.0;
 byte* gDataBufferPtr = nullptr;
-uint32_t gFileSize = 0;
-uint32_t gFileRead = 0;
 
 void initReading()
 {
     uint16_t length = fileReader->getData(gDataBufferPtr, TAPE_BUFFER_SIZE);
-    gFileRead += length;
     if (length > 0) {
         blockHandler->fillBuffer(gDataBufferPtr, length);
         blockHandler->start(fileReader->getBlockType());
@@ -55,7 +52,7 @@ void initReading()
 void drawProgress() {
     uint16_t yPosition = SYMBOL_HEIGHT * TEXT_SIZE * MARGIN_MUL;
     yPosition += (SYMBOL_HEIGHT * TEXT_SIZE + 1) * 4;
-    uint16_t width = static_cast<float>(gFileRead) / gFileSize * gScreen.width();
+    uint16_t width = static_cast<float>(fileReader->getFilePosition()) / fileReader->getFileSize() * gScreen.width();
     uint16_t xPosition = width > 4 ? width - 4 : 0;
     width = width > 4 ? 4 : width;
     gScreen.fillRect(xPosition, yPosition, width, SYMBOL_HEIGHT * TEXT_SIZE, ILI9341_WHITE);
@@ -63,9 +60,6 @@ void drawProgress() {
 
 void startReading(const char *path) {
     byte localDataBuffer[TAPE_BUFFER_SIZE];
-
-    gFileSize = FileReader::getFileSize(path);
-    gFileRead = 0;
 
     FileReader localFileRieader(path);
     BlockHandler localBlockHandler(ROOT); // ROOT is not needed
@@ -75,18 +69,35 @@ void startReading(const char *path) {
     gDataBufferPtr = localDataBuffer;
 
     initReading();
+    uint32_t filePosition = 0;
+    bool buttonIsClicked = false;
     while (true) {
-        if (!(localFileRieader.isPause())) {
+        if (!(PIND & B00100000)) {
+            if (!buttonIsClicked) {
+                buttonIsClicked = true;
+                if (0 == filePosition) {
+                    fileReader->setPause();
+                    filePosition = fileReader->getLastBlock();
+                    blockHandler->init();
+                } else {
+                    fileReader->readContinue(filePosition);
+                    initReading();
+                    filePosition = 0;
+                }
+            }
+        } else {
+            buttonIsClicked = false;
+        }
+        if (!(fileReader->isPause())) {
             if (!(blockHandler->isFinished()) && blockHandler->isBufferEmpty()) {
-                uint16_t length = localFileRieader.getData(gDataBufferPtr, TAPE_BUFFER_SIZE);
-                gFileRead += length;
+                uint16_t length = fileReader->getData(gDataBufferPtr, TAPE_BUFFER_SIZE);
                 if (length > 0) {
                     blockHandler->fillBuffer(gDataBufferPtr, length);
                 }
                 drawProgress();
             }
         }
-        if (localFileRieader.isFinished() && blockHandler->isFinished()) {
+        if (fileReader->isFinished() && blockHandler->isFinished()) {
             break;
         }
     }

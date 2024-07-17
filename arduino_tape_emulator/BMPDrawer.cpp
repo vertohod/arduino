@@ -78,7 +78,7 @@ void BMPDrawer::drawFileInfo(const char *path) {
     mScreen.println(TEXT_BYTES);
 
     yPosition += static_cast<float>(SYMBOL_HEIGHT * TEXT_SIZE * 2 + 2);
-    mScreen.drawRect(0, yPosition, mScreen.width(), SYMBOL_HEIGHT * TEXT_SIZE * 2, ILI9341_WHITE);
+    mScreen.drawRect(0, yPosition, mScreen.width(), SYMBOL_HEIGHT * TEXT_SIZE, ILI9341_WHITE);
 }
 
 void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {

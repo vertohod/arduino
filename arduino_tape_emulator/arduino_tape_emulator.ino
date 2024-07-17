@@ -58,7 +58,7 @@ void drawProgress() {
     uint16_t width = static_cast<float>(gFileRead) / gFileSize * gScreen.width();
     uint16_t xPosition = width > 4 ? width - 4 : 0;
     width = width > 4 ? 4 : width;
-    gScreen.fillRect(xPosition, yPosition, width, SYMBOL_HEIGHT * TEXT_SIZE * 2, ILI9341_WHITE);
+    gScreen.fillRect(xPosition, yPosition, width, SYMBOL_HEIGHT * TEXT_SIZE, ILI9341_WHITE);
 }
 
 void startReading(const char *path) {
@@ -90,6 +90,7 @@ void startReading(const char *path) {
             break;
         }
     }
+    fileReader = nullptr;
 }
 
 tPath gPathFile = "/";
@@ -120,6 +121,9 @@ DurationCounter dc;
 
 ISR(TIMER1_COMPA_vect)
 {
+    if (!fileReader) {
+        return;
+    }
     if (fileReader->isPause() && blockHandler->isFinished()) {
         if (dc.enabled()) {
             if (dc.check(Timer1::instance().duration())) {

@@ -89,7 +89,7 @@ bool FileReader::isFinished()
     return STATE::END == mState;
 }
 
-static uint32_t FileReader::getFileSize(const char *path)
+uint32_t FileReader::getFileSize(const char *path)
 {
     uint32_t result = 0;
     File file = SD.open(path);

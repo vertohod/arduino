@@ -2,13 +2,13 @@
 #include "SwitchExceptions.h"
 #include "Types.h"
 
-#define PALETTE_SIZE 16
-#define IMAGE_BUFFER_SIZE 16
-#define TEXT_BYTES "Bytes"
+#define PALETTE_SIZE        16
+#define IMAGE_BUFFER_SIZE   16
+#define TEXT_BYTES          "Bytes"
 
 volatile bool gActiveCycle = true;
 
-void drawBMP(Adafruit_ILI9341 *screenPtr, const char *path, bool waitCycle) {
+void drawBMP(Adafruit_ILI9341 &screen, const char *path, bool &isNeededToLoad) {
     tPath pathImage;
     memcpy(static_cast<void*>(&pathImage[0]), static_cast<const void*>(path), strlen(path) + 1);
     auto index = BMPDrawer::getLastPoint(pathImage);
@@ -16,43 +16,52 @@ void drawBMP(Adafruit_ILI9341 *screenPtr, const char *path, bool waitCycle) {
         memcpy(static_cast<void*>(&pathImage[index + 1]), static_cast<const void*>(EXTENSION_BMP), 4);
     }
 
-    BMPDrawer drawer(screenPtr);
+    BMPDrawer drawer(screen);
     drawer.drawFileInfo(path);
     drawer.draw(&pathImage[0], 0, 120);
 
-    if (!waitCycle) {
+    if (isNeededToLoad) {
         return;
     }
     gActiveCycle = true;
     enableExceptions();
+    bool buttonIsClicked = false;
     while (gActiveCycle) {
+        if (!(PIND & B00100000)) {
+            if (!buttonIsClicked) {
+                buttonIsClicked = true;
+                isNeededToLoad = true;
+                break;
+            }
+        } else {
+            buttonIsClicked = false;
+        }
     }
     disableExceptions();
 }
 
-BMPDrawer::BMPDrawer(Adafruit_ILI9341 *screenPtr) : mScreenPtr(screenPtr) {
-    mScreenPtr->begin();
-    mScreenPtr->fillScreen(ILI9341_BLACK);
+BMPDrawer::BMPDrawer(Adafruit_ILI9341 &screen) : mScreen(screen) {
+    mScreen.fillScreen(ILI9341_BLACK);
 }
 
 void BMPDrawer::drawFileInfo(const char *path) {
-    mScreenPtr->setTextSize(TEXT_SIZE);
-    mScreenPtr->setTextColor(ILI9341_WHITE);
+    mScreen.setTextSize(TEXT_SIZE);
+    mScreen.setTextColor(ILI9341_WHITE);
     File file = SD.open(path);
     uint16_t length = strlen(file.name());
     uint32_t fileSize = file.size();
 
-    uint16_t xPosition = (mScreenPtr->width() - length * SYMBOL_WIDTH * TEXT_SIZE) / 2;
+    uint16_t xPosition = (mScreen.width() - length * SYMBOL_WIDTH * TEXT_SIZE) / 2;
     uint16_t yPosition = static_cast<float>(SYMBOL_HEIGHT * TEXT_SIZE) * MARGIN_MUL;
-    mScreenPtr->setCursor(xPosition, yPosition);
-    mScreenPtr->println(file.name());
+    mScreen.setCursor(xPosition, yPosition);
+    mScreen.println(file.name());
     file.close();
 
     yPosition += static_cast<float>(SYMBOL_HEIGHT * TEXT_SIZE * 2 + 2);
-    mScreenPtr->setCursor(0, yPosition);
-    mScreenPtr->println(F("Size: "));
+    mScreen.setCursor(0, yPosition);
+    mScreen.println(F("Size: "));
 
-    xPosition = mScreenPtr->width() - SYMBOL_WIDTH * TEXT_SIZE * (strlen(TEXT_BYTES) + 2);
+    xPosition = mScreen.width() - SYMBOL_WIDTH * TEXT_SIZE * (strlen(TEXT_BYTES) + 2);
     auto sizeByte = fileSize;
     for(;;) {
         sizeByte = sizeByte / 10;
@@ -62,14 +71,14 @@ void BMPDrawer::drawFileInfo(const char *path) {
             break;
         }
     }
-    mScreenPtr->setCursor(xPosition, yPosition);
-    mScreenPtr->println(fileSize);
-    xPosition = mScreenPtr->width() - SYMBOL_WIDTH * TEXT_SIZE * strlen(TEXT_BYTES);
-    mScreenPtr->setCursor(xPosition, yPosition);
-    mScreenPtr->println(TEXT_BYTES);
+    mScreen.setCursor(xPosition, yPosition);
+    mScreen.println(fileSize);
+    xPosition = mScreen.width() - SYMBOL_WIDTH * TEXT_SIZE * strlen(TEXT_BYTES);
+    mScreen.setCursor(xPosition, yPosition);
+    mScreen.println(TEXT_BYTES);
 
     yPosition += static_cast<float>(SYMBOL_HEIGHT * TEXT_SIZE * 2 + 2);
-    mScreenPtr->drawRect(0, yPosition, mScreenPtr->width(), SYMBOL_HEIGHT * TEXT_SIZE * 2, ILI9341_WHITE);
+    mScreen.drawRect(0, yPosition, mScreen.width(), SYMBOL_HEIGHT * TEXT_SIZE * 2, ILI9341_WHITE);
 }
 
 void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
@@ -105,12 +114,12 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
             palette[counter] = static_cast<uint16_t>((red & 0x00F8) << 8) | static_cast<uint16_t>((green & 0x00FC) << 3) | static_cast<uint16_t>(blue >> 3);
         }
 
-        float factor = static_cast<float>(mScreenPtr->width()) / bmpWidth;
+        float factor = static_cast<float>(mScreen.width()) / bmpWidth;
 
-        mScreenPtr->startWrite();
-        mScreenPtr->setAddrWindow(xPosition, yPosition, mScreenPtr->width(), bmpHeight);
-        mScreenPtr->dmaWait();
-        mScreenPtr->endWrite();
+        mScreen.startWrite();
+        mScreen.setAddrWindow(xPosition, yPosition, mScreen.width(), bmpHeight);
+        mScreen.dmaWait();
+        mScreen.endWrite();
 
         for (uint16_t yCounter = 0; yCounter < bmpHeight; ++yCounter) {
             uint32_t filePosition = offset + (bmpHeight - yCounter - 1) * bmpWidth / 2;
@@ -128,10 +137,10 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
                     index = static_cast<uint16_t>(static_cast<float>(i * 2 + 1) * factor);
                     outBuffer[index] = palette[fourBitsLo];
                 }
-                mScreenPtr->startWrite();
-                mScreenPtr->writePixels(&outBuffer[0], index + 1, true);
-                mScreenPtr->dmaWait();
-                mScreenPtr->endWrite();
+                mScreen.startWrite();
+                mScreen.writePixels(&outBuffer[0], index + 1, true);
+                mScreen.dmaWait();
+                mScreen.endWrite();
                 xCounter += IMAGE_BUFFER_SIZE * 2;
             }
         }
@@ -140,7 +149,7 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
 }
 
 void BMPDrawer::drawPixel(uint16_t xPosition, uint16_t yPosition, uint16_t color) {
-    mScreenPtr->writePixel(xPosition, yPosition, color);
+    mScreen.writePixel(xPosition, yPosition, color);
 }
 
 uint16_t BMPDrawer::readLE16() {

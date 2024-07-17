@@ -15,31 +15,31 @@
 #define DURATION_PAUSE 2.0 // seconds
 #define ROOT "/"
 
-Adafruit_ILI9341 *gScreenPtr = nullptr;
+Adafruit_ILI9341 gScreen(TFT_CS, TFT_DC);
 
 void setup() {
-    gScreenPtr = new Adafruit_ILI9341(TFT_CS, TFT_DC);
     if (!SD.begin(SD_CS)) {
         while(true);
     }
     // Enable output to port D
     DDRD = B00010000;
+    gScreen.begin();
 }
 
 FileReader *fileReader = nullptr;
 BlockHandler *blockHandler = nullptr;
 bool nextLevelUp = false;
 float nextPeriod = 0.0;
-byte* dataBuffer = nullptr;
+byte* gDataBufferPtr = nullptr;
 uint32_t gFileSize = 0;
 uint32_t gFileRead = 0;
 
 void initReading()
 {
-    uint16_t length = fileReader->getData(dataBuffer, BUFFER_SIZE);
+    uint16_t length = fileReader->getData(gDataBufferPtr, TAPE_BUFFER_SIZE);
     gFileRead += length;
     if (length > 0) {
-        blockHandler->fillBuffer(dataBuffer, length);
+        blockHandler->fillBuffer(gDataBufferPtr, length);
         blockHandler->start(fileReader->getBlockType());
 
         // initialization
@@ -53,18 +53,16 @@ void initReading()
 }
 
 void drawProgress() {
-    if (gScreenPtr) {
-        uint16_t yPosition = SYMBOL_HEIGHT * TEXT_SIZE * MARGIN_MUL;
-        yPosition += (SYMBOL_HEIGHT * TEXT_SIZE + 1) * 4;
-        uint16_t width = static_cast<float>(gFileRead) / gFileSize * gScreenPtr->width();
-        uint16_t xPosition = width > 4 ? width - 4 : 0;
-        width = width > 4 ? 4 : width;
-        gScreenPtr->fillRect(xPosition, yPosition, width, SYMBOL_HEIGHT * TEXT_SIZE * 2, ILI9341_WHITE);
-    }
+    uint16_t yPosition = SYMBOL_HEIGHT * TEXT_SIZE * MARGIN_MUL;
+    yPosition += (SYMBOL_HEIGHT * TEXT_SIZE + 1) * 4;
+    uint16_t width = static_cast<float>(gFileRead) / gFileSize * gScreen.width();
+    uint16_t xPosition = width > 4 ? width - 4 : 0;
+    width = width > 4 ? 4 : width;
+    gScreen.fillRect(xPosition, yPosition, width, SYMBOL_HEIGHT * TEXT_SIZE * 2, ILI9341_WHITE);
 }
 
 void startReading(const char *path) {
-    byte localDataBuffer[BUFFER_SIZE];
+    byte localDataBuffer[TAPE_BUFFER_SIZE];
 
     gFileSize = FileReader::getFileSize(path);
     gFileRead = 0;
@@ -74,16 +72,16 @@ void startReading(const char *path) {
 
     fileReader = static_cast<FileReader*>(&localFileRieader);
     blockHandler = static_cast<BlockHandler*>(&localBlockHandler);
-    dataBuffer = localDataBuffer;
+    gDataBufferPtr = localDataBuffer;
 
     initReading();
     while (true) {
         if (!(localFileRieader.isPause())) {
             if (!(blockHandler->isFinished()) && blockHandler->isBufferEmpty()) {
-                uint16_t length = localFileRieader.getData(dataBuffer, BUFFER_SIZE);
+                uint16_t length = localFileRieader.getData(gDataBufferPtr, TAPE_BUFFER_SIZE);
                 gFileRead += length;
                 if (length > 0) {
-                    blockHandler->fillBuffer(dataBuffer, length);
+                    blockHandler->fillBuffer(gDataBufferPtr, length);
                 }
                 drawProgress();
             }
@@ -103,11 +101,11 @@ void loop()
 {
     int0Functor = MenuInt0Handler;
     int1Functor = MenuInt1Handler;
-    bool isNeededToLoad = getPathFile(gScreenPtr, gPathFile, gPosition);
+    bool isNeededToLoad = getPathFile(gScreen, gPathFile, gPosition);
 
     int0Functor = BMPDrawerInt0Handler;
     int1Functor = BMPDrawerInt1Handler;
-    drawBMP(gScreenPtr, gPathFile, !isNeededToLoad);
+    drawBMP(gScreen, gPathFile, isNeededToLoad);
 
     int0Functor = nullptr;
     int1Functor = nullptr;

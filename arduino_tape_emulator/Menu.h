@@ -6,7 +6,7 @@
 #include "MenuDrawer.h"
 #include "Types.h"
 
-bool getPathFile(Adafruit_ILI9341 *screenPtr, char* path, uint16_t& position);
+bool getPathFile(Adafruit_ILI9341 &screen, char* path, uint16_t& position);
 void MenuInt0Handler();
 void MenuInt1Handler();
 
@@ -28,7 +28,7 @@ public:
     bool            mEncoderInt1;
 
 public:
-    Menu(Adafruit_ILI9341 *screenPtr, char* path, uint16_t position);
+    Menu(Adafruit_ILI9341 &screen, char* path, uint16_t position);
     void updateMenu();
     void stepUp();
     void stepDn();

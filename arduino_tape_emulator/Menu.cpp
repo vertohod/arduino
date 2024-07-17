@@ -7,8 +7,8 @@
 
 Menu* gMenuPtr = nullptr;
 
-bool getPathFile(Adafruit_ILI9341 *screenPtr, char* path, uint16_t& position) {
-    Menu localMenu(screenPtr, path, position);
+bool getPathFile(Adafruit_ILI9341 &screen, char* path, uint16_t& position) {
+    Menu localMenu(screen, path, position);
     gMenuPtr = &localMenu;
 
     enableExceptions();
@@ -45,8 +45,8 @@ bool getPathFile(Adafruit_ILI9341 *screenPtr, char* path, uint16_t& position) {
     return result;
 }
 
-Menu::Menu(Adafruit_ILI9341 *screenPtr, char* path, uint16_t position)
-    : mMenuDrawer(screenPtr)
+Menu::Menu(Adafruit_ILI9341 &screen, char* path, uint16_t position)
+    : mMenuDrawer(screen)
     , mPath(path)
 {
     mMenuDrawer.setTextSize(2);

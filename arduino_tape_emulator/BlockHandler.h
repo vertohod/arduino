@@ -3,8 +3,6 @@
 
 #include "Types.h"
 
-#define BUFFER_SIZE 32
-
 // Signal duration in ticks
 #define PILOT_SGN       2168
 #define SYNC_SGN1       667
@@ -21,8 +19,8 @@
 class BlockHandler
 {
 private:
-    byte        mBufferIn[BUFFER_SIZE];
-    byte        mBufferOut[BUFFER_SIZE];
+    byte        mBufferIn[TAPE_BUFFER_SIZE];
+    byte        mBufferOut[TAPE_BUFFER_SIZE];
     uint8_t     mLengthIn;
     uint8_t     mLengthOut;
 

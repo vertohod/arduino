@@ -28,13 +28,12 @@ public:
 
     uint32_t getFilePosition();
     uint32_t getFileSize();
-    uint32_t getLastBlock();
     uint16_t getBlockSize();
     uint16_t getData(byte *buffer, uint16_t buffer_size);
     byte getBlockType();
     void setPause();
     bool isPause();
-    void readContinue(uint32_t position = 0);
+    void readContinue(bool lastBlock = false);
     bool isFinished();
 };
 

@@ -21,6 +21,10 @@ public:
     void draw(const char *path, int16_t xPosition, int16_t yPosition);
     static uint16_t getLastPoint(const char* path);
     static bool isItBMPFile(const char *path);
+    void drawProgressBar();
+    static void drawProgress(Adafruit_ILI9341 &screen, float progress);
+    static void drawPause(Adafruit_ILI9341 &screen);
+    static void cleanPause(Adafruit_ILI9341 &screen);
 
 private:
     uint16_t readLE16();

@@ -23,10 +23,6 @@ uint32_t FileReader::getFileSize() {
     return mFile.size();
 }
 
-uint32_t FileReader::getLastBlock() {
-    return mLastBlock;
-}
-
 uint16_t FileReader::getBlockSize() {
     byte firstByte = 0;
     byte secondByte = 0;
@@ -70,6 +66,9 @@ uint16_t FileReader::getData(byte *buffer, uint16_t buffer_size) {
             }
         }
         if (mBlockRead == mBlockSize) {
+            if (0 != mBlockType) {
+                mLastBlock = mFile.position();
+            }
             setPause();
             break;
         }
@@ -89,18 +88,14 @@ bool FileReader::isPause() {
     return STATE::PAUSE == mState;
 }
 
-void FileReader::readContinue(uint32_t position) {
-    if (isPause()) {
-        mBlockType = 0;
-        mBlockTypeKnown = false;
-        mBlockSize = 0;
-        mBlockRead = 0;
-        mState = STATE::READING;
-
-        if (0 != position) {
-            mLastBlock = position;
-            mFile.seek(position);
-        }
+void FileReader::readContinue(bool lastBlock) {
+    mBlockType = 0;
+    mBlockTypeKnown = false;
+    mBlockSize = 0;
+    mBlockRead = 0;
+    mState = STATE::READING;
+    if (lastBlock) {
+        mFile.seek(mLastBlock);
     }
 }
 

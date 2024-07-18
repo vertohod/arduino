@@ -30,7 +30,6 @@ void setup() {
 FileReader *fileReader = nullptr;
 BlockHandler *blockHandler = nullptr;
 bool gNextLevelUp = false;
-float gNextPeriod = 0.0;
 byte* gDataBufferPtr = nullptr;
 
 void initReading()
@@ -40,20 +39,15 @@ void initReading()
         blockHandler->fillBuffer(gDataBufferPtr, length);
         blockHandler->start(fileReader->getBlockType());
 
-        // initialization
         gNextLevelUp = blockHandler->getLevel();
-        gNextPeriod = blockHandler->getPeriod();
 
-        // just launch the process with some period
-        Timer1::instance().init(gNextPeriod);
+        Timer1::instance().init(blockHandler->getPeriod());
         Timer1::instance().start();
     }
 }
 
 void drawProgress() {
-    uint16_t yPosition = SYMBOL_HEIGHT * TEXT_SIZE * MARGIN_MUL + (SYMBOL_HEIGHT * TEXT_SIZE + 1) * 4;
-    uint16_t width = static_cast<float>(fileReader->getFilePosition()) / fileReader->getFileSize() * gScreen.width();
-    gScreen.fillRect(width > 4 ? width - 4 : 0, yPosition, width > 4 ? 4 : width, SYMBOL_HEIGHT * TEXT_SIZE, ILI9341_WHITE);
+    BMPDrawer::drawProgress(gScreen, static_cast<float>(fileReader->getFilePosition()) / fileReader->getFileSize());
 }
 
 volatile bool gFlipFlop = false;
@@ -66,11 +60,10 @@ void startReading(const char *path) {
 
     fileReader = static_cast<FileReader*>(&localFileRieader);
     blockHandler = static_cast<BlockHandler*>(&localBlockHandler);
-    gDataBufferPtr = localDataBuffer;
+    gDataBufferPtr = &localDataBuffer[0];
 
     initReading();
     gFlipFlop = false;
-    uint32_t filePosition = 0;
     bool buttonIsClicked = false;
     while (true) {
         if (!(PIND & B00100000)) {
@@ -78,12 +71,12 @@ void startReading(const char *path) {
                 buttonIsClicked = true;
                 if (!gFlipFlop) {
                     fileReader->setPause();
-                    filePosition = fileReader->getLastBlock();
                     blockHandler->init();
+                    BMPDrawer::drawPause(gScreen);
                 } else {
-                    fileReader->readContinue(filePosition);
+                    BMPDrawer::cleanPause(gScreen);
+                    fileReader->readContinue(true);
                     initReading();
-                    filePosition = 0;
                 }
                 gFlipFlop = !gFlipFlop;
             }
@@ -155,10 +148,9 @@ ISR(TIMER1_COMPA_vect)
         Timer1::instance().start();
 
         gNextLevelUp = blockHandler->getLevel();
-        gNextPeriod = blockHandler->getPeriod();
 
         // initialize the timer now do not waste time
-        Timer1::instance().init(gNextPeriod);
+        Timer1::instance().init(blockHandler->getPeriod());
     }
 }
 

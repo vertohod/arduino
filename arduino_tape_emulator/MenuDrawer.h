@@ -11,10 +11,6 @@
 class MenuDrawer {
 private:
     Adafruit_ILI9341 &mScreen;
-    uint8_t mTextHeight;
-    uint8_t mMargin;
-    uint8_t mItemHeight;
-    uint8_t mTopPosition;
 
 public:
     MenuDrawer(Adafruit_ILI9341 &screen);
@@ -25,6 +21,12 @@ public:
     inline void quickDrawItem(const char* text, uint16_t position, bool active) {
         draw(text, position, active, true);
     }
+    static uint8_t getTextHeight();
+    static uint8_t getMargin();
+    static uint8_t getItemHeight();
+    static uint8_t getTopPosition();
+    static uint16_t getYCoord(uint8_t line);
+
 private:
     void draw(const char* text, uint16_t position, bool active, bool fillAll = false, bool drawLine = false);
 };

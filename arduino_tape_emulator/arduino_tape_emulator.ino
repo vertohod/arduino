@@ -29,8 +29,13 @@ void setup() {
 
 FileReader *fileReader = nullptr;
 BlockHandler *blockHandler = nullptr;
-bool gNextLevelUp = false;
 byte* gDataBufferPtr = nullptr;
+
+void writeToPort() {
+    PORTD = blockHandler->getLevel() ? 0xff : 0x00;
+    Timer1::instance().init(blockHandler->getPeriod());
+    Timer1::instance().start();
+}
 
 void initReading()
 {
@@ -38,11 +43,7 @@ void initReading()
     if (length > 0) {
         blockHandler->fillBuffer(gDataBufferPtr, length);
         blockHandler->start(fileReader->getBlockType());
-
-        gNextLevelUp = blockHandler->getLevel();
-
-        Timer1::instance().init(blockHandler->getPeriod());
-        Timer1::instance().start();
+        writeToPort();
     }
 }
 
@@ -144,13 +145,7 @@ ISR(TIMER1_COMPA_vect)
         }
     }
     if (!blockHandler->isFinished()) {
-        PORTD = gNextLevelUp ? 0xff : 0x00;
-        Timer1::instance().start();
-
-        gNextLevelUp = blockHandler->getLevel();
-
-        // initialize the timer now do not waste time
-        Timer1::instance().init(blockHandler->getPeriod());
+        writeToPort();
     }
 }
 

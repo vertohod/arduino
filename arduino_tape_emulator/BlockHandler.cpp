@@ -23,7 +23,6 @@ void BlockHandler::init()
     mIndexByte = 0;
     mMask = 0;
     mStage = STAGE::FINISH;
-    mCurrentBitOne = false;
     mMeanderUp = true;
     mPeriod = 0;
 }
@@ -34,6 +33,8 @@ bool BlockHandler::moveData()
 
     memcpy(static_cast<void*>(&mBufferOut[0]), static_cast<const void*>(&mBufferIn[0]), mLengthIn);
     mLengthOut = mLengthIn;
+    mIndexByte = 0;
+    mMask = 0;
     mLengthIn = 0;
 
     return true;
@@ -85,10 +86,7 @@ bool BlockHandler::getLevel()
         case STAGE::DATA:
             if (mMeanderUp) {
                 if (0 == mLengthOut && 0 == mMask) {
-                    if (moveData()) {
-                        mIndexByte = 0;
-                        mMask = 0;
-                    } else {
+                    if (!moveData()) {
                         mPeriod = SYNC_SGN3;
                         mStage = STAGE::FINAL1;
                         return true;

@@ -28,44 +28,43 @@ void setup() {
     gScreen.setTextSize(TEXT_SIZE);
 }
 
-FileReader *fileReader = nullptr;
-BlockHandler *blockHandler = nullptr;
+FileReader *gFileReader = nullptr;
+BlockHandler *gBlockHandler = nullptr;
 byte* gDataBufferPtr = nullptr;
 
 void writeToPort() {
-    PORTD = blockHandler->getLevel() ? 0xff : 0x00;
-    Timer1::instance().init(blockHandler->getPeriod());
-    Timer1::instance().start();
+    PORTD = gBlockHandler->getLevel() ? 0xff : 0x00;
+    Timer1::instance().start(gBlockHandler->getPeriod());
 }
 
-void initReading()
-{
-    uint16_t length = fileReader->getData(gDataBufferPtr, TAPE_BUFFER_SIZE);
-    if (length > 0) {
-        blockHandler->fillBuffer(gDataBufferPtr, length);
-        blockHandler->start(fileReader->getBlockType());
+void initReading() {
+    uint16_t length = gFileReader->getData(gDataBufferPtr, TAPE_BUFFER_SIZE);
+    if (0 < length) {
+        gBlockHandler->fillBuffer(gDataBufferPtr, length);
+        gBlockHandler->start(gFileReader->getBlockType());
         writeToPort();
     }
 }
 
 void drawProgress() {
-    BMPDrawer::drawProgress(gScreen, static_cast<float>(fileReader->getFilePosition()) / fileReader->getFileSize());
+    BMPDrawer::drawProgress(gScreen, static_cast<float>(gFileReader->getFilePosition()) / gFileReader->getFileSize());
 }
 
 void (*int0Functor)() = nullptr;
 void (*int1Functor)() = nullptr;
 
 void FileReaderInt0Handler(void) {
-    fileReader->setPreviousBlock();
+    gFileReader->setPreviousBlock();
     drawProgress();
 }
 
 void FileReaderInt1Handler(void) {
-    fileReader->setNextBlock();
+    gFileReader->setNextBlock();
     drawProgress();
 }
 
 volatile bool gFlipFlop = false;
+bool gButtonIsClicked = false; // this is local, but save flash
 
 void startReading(const char *path) {
     byte localDataBuffer[TAPE_BUFFER_SIZE];
@@ -73,20 +72,22 @@ void startReading(const char *path) {
     FileReader localFileRieader(path);
     BlockHandler localBlockHandler(ROOT); // ROOT is not needed
 
-    fileReader = static_cast<FileReader*>(&localFileRieader);
-    blockHandler = static_cast<BlockHandler*>(&localBlockHandler);
+    gFileReader = static_cast<FileReader*>(&localFileRieader);
+    gBlockHandler = static_cast<BlockHandler*>(&localBlockHandler);
     gDataBufferPtr = &localDataBuffer[0];
 
     initReading();
     gFlipFlop = false;
-    bool buttonIsClicked = false;
+    gButtonIsClicked = false;
     while (true) {
-        if (!(PIND & B00100000)) {
-            if (!buttonIsClicked) {
-                buttonIsClicked = true;
+        if (PIND & B00100000) {
+            gButtonIsClicked = false;
+        } else {
+            if (!gButtonIsClicked) {
+                gButtonIsClicked = true;
                 if (!gFlipFlop) {
-                    fileReader->setPause();
-                    blockHandler->init();
+                    gFileReader->setPause();
+                    gBlockHandler->init();
                     BMPDrawer::drawPause(gScreen);
                     int0Functor = FileReaderInt0Handler;
                     int1Functor = FileReaderInt1Handler;
@@ -96,35 +97,32 @@ void startReading(const char *path) {
                     int0Functor = nullptr;
                     int1Functor = nullptr;
                     BMPDrawer::cleanPause(gScreen);
-                    fileReader->readContinue(true);
+                    gFileReader->readContinue(true);
                     initReading();
                 }
                 gFlipFlop = !gFlipFlop;
             }
-        } else {
-            buttonIsClicked = false;
         }
-        if (!(fileReader->isPause())) {
-            if (!(blockHandler->isFinished()) && blockHandler->isBufferEmpty()) {
-                uint16_t length = fileReader->getData(gDataBufferPtr, TAPE_BUFFER_SIZE);
+        if (!(gFileReader->isPause())) {
+            if (!(gBlockHandler->isFinished()) && gBlockHandler->isBufferEmpty()) {
+                uint16_t length = gFileReader->getData(gDataBufferPtr, TAPE_BUFFER_SIZE);
                 if (length > 0) {
-                    blockHandler->fillBuffer(gDataBufferPtr, length);
+                    gBlockHandler->fillBuffer(gDataBufferPtr, length);
                 }
                 drawProgress();
             }
         }
-        if (fileReader->isFinished() && blockHandler->isFinished()) {
+        if (gFileReader->isFinished() && gBlockHandler->isFinished()) {
             break;
         }
     }
-    fileReader = nullptr;
+    gFileReader = nullptr;
 }
 
 tPath gPathFile = "/";
 uint16_t gPosition = 0;
 
-void loop()
-{
+void loop() {
     int0Functor = MenuInt0Handler;
     int1Functor = MenuInt1Handler;
     bool isNeededToLoad = getPathFile(gScreen, gPathFile, gPosition);
@@ -135,7 +133,6 @@ void loop()
 
     int0Functor = nullptr;
     int1Functor = nullptr;
-
     if (isNeededToLoad) {
         startReading(gPathFile);
     }
@@ -146,23 +143,22 @@ DurationCounter dc;
 
 ISR(TIMER1_COMPA_vect)
 {
-    if (!fileReader || gFlipFlop) {
+    if (!gFileReader || gFlipFlop) {
         return;
     }
-    if (fileReader->isPause() && blockHandler->isFinished()) {
-        if (dc.enabled()) {
-            if (dc.check(Timer1::instance().duration())) {
-                fileReader->readContinue();
-                initReading();
+    if (gBlockHandler->isFinished()) {
+        if (gFileReader->isPause()) {
+            if (dc.enabled()) {
+                if (dc.check(Timer1::instance().duration())) {
+                    gFileReader->readContinue();
+                    initReading();
+                }
+            } else {
+                dc.set(DURATION_PAUSE);
+                Timer1::instance().start(DURATION_PAUSE);
             }
-        } else {
-            dc.set(DURATION_PAUSE);
-            Timer1::instance().init(DURATION_PAUSE);
-            Timer1::instance().start();
-            return;
         }
-    }
-    if (!blockHandler->isFinished()) {
+    } else {
         writeToPort();
     }
 }

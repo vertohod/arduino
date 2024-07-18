@@ -25,7 +25,8 @@ public:
     static uint8_t getMargin();
     static uint8_t getItemHeight();
     static uint8_t getTopPosition();
-    static uint16_t getYCoord(uint8_t line);
+    static uint16_t getItemPosition(uint8_t line);
+    static uint16_t getTextPosition(uint8_t line);
 
 private:
     void draw(const char* text, uint16_t position, bool active, bool fillAll = false, bool drawLine = false);

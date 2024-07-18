@@ -13,12 +13,10 @@
 #define STEP4 (((MAX_OCR1A + 1) * 2 * 256) / TIMER_FRQ_Hz)
 #define STEP5 (((MAX_OCR1A + 1) * 2 * 1024) / TIMER_FRQ_Hz)
 
-class Timer1
-{
+class Timer1 {
 private:
-    byte mPrescaling;
-    uint16_t mOCR1A;
-    float mDuration;
+    byte    mPrescaling;
+    float   mDuration;
 
 private:
     Timer1();
@@ -31,9 +29,8 @@ public:
     Timer1(Timer1 const&) = delete;
     void operator=(Timer1 const&) = delete;
 
-    void init(float duration);
+    void start(float duration);
     float duration();
-    void start();
     void stop();
 };
 

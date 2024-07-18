@@ -23,13 +23,12 @@ void BlockHandler::init()
     mIndexByte = 0;
     mMask = 0;
     mStage = STAGE::FINISH;
-    mMeanderUp = true;
     mPeriod = 0;
 }
 
 bool BlockHandler::moveData()
 {
-    if (mLengthIn == 0) return false;
+    if (0 == mLengthIn) return false;
 
     memcpy(static_cast<void*>(&mBufferOut[0]), static_cast<const void*>(&mBufferIn[0]), mLengthIn);
     mLengthOut = mLengthIn;
@@ -44,11 +43,6 @@ void BlockHandler::start(byte type)
 {
     mStage = STAGE::PILOT;
     mImpulseCouter = (0 == type ? PILOT_HEADER_IMPULSES : PILOT_DATA_IMPULSES);
-}
-
-void BlockHandler::stop()
-{
-    mStage = STAGE::FINISH;
 }
 
 bool BlockHandler::getBit()
@@ -81,7 +75,6 @@ bool BlockHandler::getLevel()
         case STAGE::SYNC2:
             mPeriod = SYNC_SGN2;
             mStage = STAGE::DATA;
-            mMeanderUp = true;  // for any case
             return false;
         case STAGE::DATA:
             if (mMeanderUp) {
@@ -114,11 +107,6 @@ bool BlockHandler::getLevel()
 float BlockHandler::getPeriod()
 {
     return static_cast<float>(mPeriod) / Z80_FRQ_Hz * 2;
-}
-
-bool BlockHandler::isPilot()
-{
-    return STAGE::PILOT == mStage;
 }
 
 bool BlockHandler::isFinished()

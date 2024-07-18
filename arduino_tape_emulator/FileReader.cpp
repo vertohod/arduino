@@ -113,10 +113,10 @@ void FileReader::setPreviousBlock() {
     mFile.seek(0);
     uint32_t previousPosition = 0;
     uint32_t counter = 0;
-    while (true) {
+    while (0 != mLastBlock) {
         counter += getBlockSize() + 2;
         mFile.seek(counter);
-        if (counter == mLastBlock) {
+        if (mLastBlock == counter || !mFile.available()) {
             break;
         }
         previousPosition = counter;

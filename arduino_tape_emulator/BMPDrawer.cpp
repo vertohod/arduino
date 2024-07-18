@@ -13,9 +13,7 @@ void drawBMP(Adafruit_ILI9341 &screen, const char *path, bool &isNeededToLoad) {
     tPath pathImage;
     memcpy(static_cast<void*>(&pathImage[0]), static_cast<const void*>(path), strlen(path) + 1);
     auto index = BMPDrawer::getLastPoint(pathImage);
-    if (0 != index) {
-        memcpy(static_cast<void*>(&pathImage[index + 1]), static_cast<const void*>(EXTENSION_BMP), 4);
-    }
+    memcpy(static_cast<void*>(&pathImage[index + 1]), static_cast<const void*>(EXTENSION_BMP), 4);
 
     BMPDrawer drawer(screen);
     drawer.drawFileInfo(path);
@@ -28,14 +26,14 @@ void drawBMP(Adafruit_ILI9341 &screen, const char *path, bool &isNeededToLoad) {
     enableExceptions();
     bool buttonIsClicked = false;
     while (gActiveCycle) {
-        if (!(PIND & B00100000)) {
+        if (PIND & B00100000) {
+            buttonIsClicked = false;
+        } else {
             if (!buttonIsClicked) {
                 buttonIsClicked = true;
                 isNeededToLoad = true;
                 break;
             }
-        } else {
-            buttonIsClicked = false;
         }
     }
     disableExceptions();
@@ -54,12 +52,12 @@ void BMPDrawer::drawFileInfo(const char *path) {
     mScreen.setCursor(xPosition, MenuDrawer::getMargin());
     mScreen.println(file.name());
 
-    mScreen.setCursor(0, MenuDrawer::getYCoord(0) + MenuDrawer::getMargin() + 2);
-    mScreen.println("Size: ");
+    mScreen.setCursor(0, MenuDrawer::getTextPosition(0) + 2);
+    mScreen.println("Size:");
 
     xPosition = mScreen.width() - SYMBOL_WIDTH * TEXT_SIZE * (strlen(TEXT_BYTES) + 2);
     auto sizeByte = file.size();
-    for(;;) {
+    while (true) {
         sizeByte = sizeByte / 10;
         if (sizeByte > 0) {
             xPosition -= SYMBOL_WIDTH * TEXT_SIZE;
@@ -67,10 +65,10 @@ void BMPDrawer::drawFileInfo(const char *path) {
             break;
         }
     }
-    mScreen.setCursor(xPosition, MenuDrawer::getYCoord(0) + MenuDrawer::getMargin() + 2);
+    mScreen.setCursor(xPosition, MenuDrawer::getTextPosition(0) + 2);
     mScreen.println(file.size());
     xPosition = mScreen.width() - SYMBOL_WIDTH * TEXT_SIZE * strlen(TEXT_BYTES);
-    mScreen.setCursor(xPosition, MenuDrawer::getYCoord(0) + MenuDrawer::getMargin() + 2);
+    mScreen.setCursor(xPosition, MenuDrawer::getTextPosition(0) + 2);
     mScreen.println(TEXT_BYTES);
 
     drawProgressBar();
@@ -78,23 +76,24 @@ void BMPDrawer::drawFileInfo(const char *path) {
 }
 
 void BMPDrawer::drawProgressBar() {
-    mScreen.drawRect(0, MenuDrawer::getYCoord(1) + MenuDrawer::getMargin(), mScreen.width(), MenuDrawer::getTextHeight(), ILI9341_WHITE);
+    mScreen.drawRect(0, MenuDrawer::getTextPosition(1), mScreen.width(), MenuDrawer::getTextHeight(), ILI9341_WHITE);
 }
 
 void BMPDrawer::drawProgress(Adafruit_ILI9341 &screen, float progress) {
     uint16_t width = progress * screen.width();
-    screen.fillRect(0, MenuDrawer::getYCoord(1) + MenuDrawer::getMargin(), width, MenuDrawer::getTextHeight(), ILI9341_WHITE);
-    screen.fillRect(width, MenuDrawer::getYCoord(1) + MenuDrawer::getMargin() + 1, screen.width() - width, MenuDrawer::getTextHeight() - 2, ILI9341_BLACK);
+    screen.fillRect(0, MenuDrawer::getTextPosition(1) + 1, width, MenuDrawer::getTextHeight() - 2, ILI9341_WHITE);
+    width = (0 == width) ? 1 : width + 1;
+    screen.fillRect(width, MenuDrawer::getTextPosition(1) + 1, screen.width() - width - 2, MenuDrawer::getTextHeight() - 2, ILI9341_BLACK);
 }
 
 void BMPDrawer::drawPause(Adafruit_ILI9341 &screen) {
-    screen.setCursor(90, MenuDrawer::getYCoord(2) - 2);
+    screen.setCursor(90, MenuDrawer::getItemPosition(2) - 2);
     screen.setTextColor(ILI9341_RED);
     screen.println(TEXT_PAUSE);
 }
 
 void BMPDrawer::cleanPause(Adafruit_ILI9341 &screen) {
-    screen.fillRect(0, MenuDrawer::getYCoord(2) - 2, screen.width(), MenuDrawer::getTextHeight(), ILI9341_BLACK);
+    screen.fillRect(0, MenuDrawer::getItemPosition(2) - 2, screen.width(), MenuDrawer::getTextHeight(), ILI9341_BLACK);
 }
 
 void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
@@ -122,9 +121,10 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
         for (uint16_t counter = 0; counter < PALETTE_SIZE; ++counter) {
             uint16_t blue = mFile.read();
             uint16_t green = mFile.read();
-            uint16_t red = mFile.read();
+            // It looks strange, but reduces binary code
+            // uint16_t red = mFile.read();
+            palette[counter] = static_cast<uint16_t>((mFile.read() & 0x00F8) << 8) | static_cast<uint16_t>((green & 0x00FC) << 3) | static_cast<uint16_t>(blue >> 3);
             mFile.read(); // Ignore 4th byte
-            palette[counter] = static_cast<uint16_t>((red & 0x00F8) << 8) | static_cast<uint16_t>((green & 0x00FC) << 3) | static_cast<uint16_t>(blue >> 3);
         }
 
         float factor = static_cast<float>(mScreen.width()) / bmpWidth;

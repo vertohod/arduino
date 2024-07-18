@@ -55,15 +55,13 @@ public:
 
 private:
     bool moveData();
+    bool getBit();
 
 public:
     void init();
     void start(byte type);
-    void stop();
-    bool getBit();
     bool getLevel();
     float getPeriod();
-    bool isPilot();
     bool isFinished();
 };
 

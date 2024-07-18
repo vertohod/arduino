@@ -41,13 +41,17 @@ uint8_t MenuDrawer::getTopPosition() {
     return getItemHeight() + 1;
 }
 
-uint16_t MenuDrawer::getYCoord(uint8_t line) {
+uint16_t MenuDrawer::getItemPosition(uint8_t line) {
     return getTopPosition() + (getItemHeight() + 2) * line;
+}
+
+uint16_t MenuDrawer::getTextPosition(uint8_t line) {
+    return getItemPosition(line) + getMargin();
 }
 
 void MenuDrawer::draw(const char* text, uint16_t position, bool active, bool fillAll, bool drawLine) {
     auto backColor = active ? ILI9341_WHITE : ILI9341_BLACK;
-    auto yPosition = getYCoord(position);
+    auto yPosition = getItemPosition(position);
     if (fillAll) {
         mScreen.fillRect(0, yPosition, mScreen.width(), getItemHeight(), backColor);
     } else {

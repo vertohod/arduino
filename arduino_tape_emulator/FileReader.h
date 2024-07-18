@@ -35,6 +35,8 @@ public:
     bool isPause();
     void readContinue(bool lastBlock = false);
     bool isFinished();
+    void setNextBlock();
+    void setPreviousBlock();
 };
 
 #endif

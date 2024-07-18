@@ -102,3 +102,25 @@ void FileReader::readContinue(bool lastBlock) {
 bool FileReader::isFinished() {
     return STATE::END == mState;
 }
+
+void FileReader::setNextBlock() {
+    mFile.seek(mLastBlock);
+    mLastBlock += getBlockSize() + 2;
+    mFile.seek(mLastBlock);
+}
+
+void FileReader::setPreviousBlock() {
+    mFile.seek(0);
+    uint32_t previousPosition = 0;
+    uint32_t counter = 0;
+    while (true) {
+        counter += getBlockSize() + 2;
+        mFile.seek(counter);
+        if (counter == mLastBlock) {
+            break;
+        }
+        previousPosition = counter;
+    }
+    mLastBlock = previousPosition;
+    mFile.seek(mLastBlock);
+}

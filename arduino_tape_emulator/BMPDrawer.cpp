@@ -83,7 +83,8 @@ void BMPDrawer::drawProgressBar() {
 
 void BMPDrawer::drawProgress(Adafruit_ILI9341 &screen, float progress) {
     uint16_t width = progress * screen.width();
-    screen.fillRect(width > 4 ? width - 4 : 0, MenuDrawer::getYCoord(1) + MenuDrawer::getMargin(), width > 4 ? 4 : width, MenuDrawer::getTextHeight(), ILI9341_WHITE);
+    screen.fillRect(0, MenuDrawer::getYCoord(1) + MenuDrawer::getMargin(), width, MenuDrawer::getTextHeight(), ILI9341_WHITE);
+    screen.fillRect(width, MenuDrawer::getYCoord(1) + MenuDrawer::getMargin() + 1, screen.width() - width, MenuDrawer::getTextHeight() - 2, ILI9341_BLACK);
 }
 
 void BMPDrawer::drawPause(Adafruit_ILI9341 &screen) {

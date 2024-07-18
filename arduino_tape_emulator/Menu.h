@@ -24,10 +24,6 @@ private:
     uint8_t         mFilesAmount;
 
 public:
-    bool            mEncoderInt0;
-    bool            mEncoderInt1;
-
-public:
     Menu(Adafruit_ILI9341 &screen, char* path, uint16_t position);
     void updateMenu();
     void stepUp();

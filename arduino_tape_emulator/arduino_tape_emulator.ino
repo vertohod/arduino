@@ -1,3 +1,4 @@
+#include "SwitchExceptions.h"
 #include "DurationCounter.h"
 #include "BlockHandler.h"
 #include "FileReader.h"
@@ -51,6 +52,19 @@ void drawProgress() {
     BMPDrawer::drawProgress(gScreen, static_cast<float>(fileReader->getFilePosition()) / fileReader->getFileSize());
 }
 
+void (*int0Functor)() = nullptr;
+void (*int1Functor)() = nullptr;
+
+void FileReaderInt0Handler(void) {
+    fileReader->setPreviousBlock();
+    drawProgress();
+}
+
+void FileReaderInt1Handler(void) {
+    fileReader->setNextBlock();
+    drawProgress();
+}
+
 volatile bool gFlipFlop = false;
 
 void startReading(const char *path) {
@@ -74,7 +88,13 @@ void startReading(const char *path) {
                     fileReader->setPause();
                     blockHandler->init();
                     BMPDrawer::drawPause(gScreen);
+                    int0Functor = FileReaderInt0Handler;
+                    int1Functor = FileReaderInt1Handler;
+                    enableExceptions();
                 } else {
+                    disableExceptions();
+                    int0Functor = nullptr;
+                    int1Functor = nullptr;
                     BMPDrawer::cleanPause(gScreen);
                     fileReader->readContinue(true);
                     initReading();
@@ -102,8 +122,6 @@ void startReading(const char *path) {
 
 tPath gPathFile = "/";
 uint16_t gPosition = 0;
-void (*int0Functor)() = nullptr;
-void (*int1Functor)() = nullptr;
 
 void loop()
 {
@@ -149,16 +167,28 @@ ISR(TIMER1_COMPA_vect)
     }
 }
 
+bool gEncoderInt0;
+bool gEncoderInt1;
 ISR(INT0_vect)
 {
-    if (int0Functor) {
-        int0Functor();
+    if (gEncoderInt1) {
+        gEncoderInt1 = false;
+        if (int0Functor) {
+            int0Functor();
+        }
+    } else {
+        gEncoderInt0 = true;
     }
 }
 
 ISR(INT1_vect)
 {
-    if (int1Functor) {
-        int1Functor();
+    if (gEncoderInt0) {
+        gEncoderInt0 = false;
+        if (int1Functor) {
+            int1Functor();
+        }
+    } else {
+        gEncoderInt1 = true;
     }
 }

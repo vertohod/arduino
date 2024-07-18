@@ -56,8 +56,6 @@ Menu::Menu(Adafruit_ILI9341 &screen, char* path, uint16_t position)
     mTimeoutCounter = MENU_TIMEOUT;
     mUpVisiblePosition = (position / MENU_LENGTH) * MENU_LENGTH;
     mCurrentPosition = position % MENU_LENGTH;
-    mEncoderInt0 = false;
-    mEncoderInt1 = false;
 
     updateMenu();
 }
@@ -209,20 +207,10 @@ void Menu::menuDraw(bool quickDraw) {
 
 void MenuInt0Handler() {
     gMenuPtr->clearTimeout();
-    if (gMenuPtr->mEncoderInt1) {
-        gMenuPtr->mEncoderInt1 = false;
-        gMenuPtr->stepUp();
-    } else {
-        gMenuPtr->mEncoderInt0 = true;
-    }
+    gMenuPtr->stepUp();
 }
 
 void MenuInt1Handler() {
     gMenuPtr->clearTimeout();
-    if (gMenuPtr->mEncoderInt0) {
-        gMenuPtr->mEncoderInt0 = false;
-        gMenuPtr->stepDn();
-    } else {
-        gMenuPtr->mEncoderInt1 = true;
-    }
+    gMenuPtr->stepDn();
 }

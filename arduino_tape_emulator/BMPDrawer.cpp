@@ -97,9 +97,9 @@ void BMPDrawer::drawProgress(Adafruit_ILI9341 &screen, bool withClear, float pro
 
 
 void BMPDrawer::drawPause(Adafruit_ILI9341 &screen) {
-    screen.setCursor(90, MenuDrawer::getItemPosition(2) - 2);
+    screen.setCursor(86, MenuDrawer::getItemPosition(2) - 2);
     screen.setTextColor(ILI9341_RED);
-    screen.println(TEXT_PAUSE);
+    screen.println(TEXT_PAUSED);
 }
 
 void BMPDrawer::cleanPause(Adafruit_ILI9341 &screen) {

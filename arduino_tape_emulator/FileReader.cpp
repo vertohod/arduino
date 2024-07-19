@@ -105,8 +105,14 @@ bool FileReader::isFinished() {
 
 void FileReader::setNextBlock() {
     mFile.seek(mLastBlock);
-    mLastBlock += getBlockSize() + 2;
-    mFile.seek(mLastBlock);
+    uint8_t i = 2;
+    while (true) {
+        mLastBlock += getBlockSize() + 2;
+        mFile.seek(mLastBlock);
+        if (0 != --i) {
+            break;
+        }
+    }
 }
 
 void FileReader::setPreviousBlock() {
@@ -114,12 +120,18 @@ void FileReader::setPreviousBlock() {
     uint32_t previousPosition = 0;
     uint32_t counter = 0;
     while (0 != mLastBlock) {
-        counter += getBlockSize() + 2;
-        mFile.seek(counter);
-        if (mLastBlock == counter || !mFile.available()) {
+        if (!mFile.available()) {
             break;
         }
-        previousPosition = counter;
+        uint32_t blockSize = getBlockSize();
+        if (0 == mFile.read()) {
+            previousPosition = counter;
+        }
+        counter += blockSize + 2;
+        if (mLastBlock == counter) {
+            break;
+        }
+        mFile.seek(counter);
     }
     mLastBlock = previousPosition;
     mFile.seek(mLastBlock);

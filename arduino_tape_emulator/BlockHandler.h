@@ -42,7 +42,7 @@ private:
 
     STAGE           mStage;
     bool            mCurrentBitOne;
-    bool            mMeanderUp;
+    level           mMeanderUp;
     uint16_t        mPeriod;
 
     uint16_t        mImpulseCouter;
@@ -60,7 +60,7 @@ private:
 public:
     void init();
     void start(byte type);
-    bool getLevel();
+    level getLevel();
     float getPeriod();
     bool isFinished();
 };

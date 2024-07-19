@@ -11,10 +11,11 @@
 #define EXTENSION_BMP       "BMP"
 #define TAPE_BUFFER_SIZE    64
 #define TWO_POINTS          ".."
-#define TEXT_PAUSE          "PAUSE"
+#define TEXT_PAUSED         "PAUSED"
 
 typedef uint8_t byte;
 typedef char tPath[(FILENAME_LENGTH + 1) * 2];
 typedef char tFileName[FILENAME_LENGTH]; 
+typedef bool level;
 
 #endif

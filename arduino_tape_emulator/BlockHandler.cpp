@@ -57,8 +57,7 @@ bool BlockHandler::getBit()
     return result;
 }
 
-bool BlockHandler::getLevel()
-{
+level BlockHandler::getLevel() {
     switch (mStage) {
         case STAGE::PILOT:
             mPeriod = PILOT_SGN;
@@ -71,18 +70,18 @@ bool BlockHandler::getLevel()
         case STAGE::SYNC1:
             mPeriod = SYNC_SGN1;
             mStage = STAGE::SYNC2;
-            return true;
+            return HIGH;
         case STAGE::SYNC2:
             mPeriod = SYNC_SGN2;
             mStage = STAGE::DATA;
-            return false;
+            return LOW;
         case STAGE::DATA:
             if (mMeanderUp) {
                 if (0 == mLengthOut && 0 == mMask) {
                     if (!moveData()) {
                         mPeriod = SYNC_SGN3;
                         mStage = STAGE::FINAL1;
-                        return true;
+                        return HIGH;
                     }
                 }
                 mCurrentBitOne = getBit();
@@ -92,15 +91,15 @@ bool BlockHandler::getLevel()
             return !mMeanderUp;
         case STAGE::FINAL1:
             mStage = STAGE::FINAL2;
-            return false;
+            return LOW;
         case STAGE::FINAL2:
             mStage = STAGE::FINISH;
-            return false;
+            return LOW;
         case STAGE::FINISH:
             init();
-            return false;
+            return LOW;
         default:
-            return false;
+            return LOW;
     }
 }
 

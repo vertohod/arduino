@@ -22,8 +22,8 @@ public:
     static uint16_t getLastPoint(const char* path);
     static bool isItBMPFile(const char *path);
     void drawProgressBar();
-    static void drawProgress(Adafruit_ILI9341 &screen, float progress);
-    static void drawProgressWithClear(Adafruit_ILI9341 &screen, float progress);
+    static uint16_t discreteNumber(uint16_t number); 
+    static void drawProgress(Adafruit_ILI9341 &screen, bool withClear, float progress);
     static void drawPause(Adafruit_ILI9341 &screen);
     static void cleanPause(Adafruit_ILI9341 &screen);
 

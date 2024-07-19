@@ -79,18 +79,22 @@ void BMPDrawer::drawProgressBar() {
     mScreen.drawRect(0, MenuDrawer::getTextPosition(1), mScreen.width(), MenuDrawer::getTextHeight(), ILI9341_WHITE);
 }
 
-void BMPDrawer::drawProgress(Adafruit_ILI9341 &screen, float progress) {
-    uint16_t width = static_cast<uint16_t>(progress * (screen.width() - 2)) / 4 * 4;
-    screen.drawLine(width + 1, MenuDrawer::getTextPosition(1) + 3, width, MenuDrawer::getTextPosition(1) + MenuDrawer::getTextHeight() - 4, ILI9341_WHITE);
+uint16_t BMPDrawer::discreteNumber(uint16_t number) {
+    return number / 4 * 4;
 }
 
-void BMPDrawer::drawProgressWithClear(Adafruit_ILI9341 &screen, float progress) {
+void BMPDrawer::drawProgress(Adafruit_ILI9341 &screen, bool withClear, float progress) {
     uint16_t width = progress * (screen.width() - 2);
-    screen.fillRect(width + 1, MenuDrawer::getTextPosition(1) + 3, screen.width() - width - 2, MenuDrawer::getTextHeight() - 6, ILI9341_BLACK);
-    for (uint16_t i = 0; i < width; ++i) {
-        screen.drawLine(i / 4 * 4, MenuDrawer::getTextPosition(1) + 3, i / 4 * 4, MenuDrawer::getTextPosition(1) + MenuDrawer::getTextHeight() - 4, ILI9341_WHITE);
-    } 
+    if (withClear) {
+        screen.fillRect(width + 1, MenuDrawer::getTextPosition(1) + 3, screen.width() - width - 2, MenuDrawer::getTextHeight() - 6, ILI9341_BLACK);
+        for (uint16_t i = 0; i < width; ++i) {
+            screen.drawLine(discreteNumber(i), MenuDrawer::getTextPosition(1) + 3, discreteNumber(i), MenuDrawer::getTextPosition(1) + MenuDrawer::getTextHeight() - 4, ILI9341_WHITE);
+        }
+    }
+    auto xPosition = discreteNumber(width);
+    screen.drawLine(xPosition, MenuDrawer::getTextPosition(1) + 3, xPosition, MenuDrawer::getTextPosition(1) + MenuDrawer::getTextHeight() - 4, ILI9341_WHITE);
 }
+
 
 void BMPDrawer::drawPause(Adafruit_ILI9341 &screen) {
     screen.setCursor(90, MenuDrawer::getItemPosition(2) - 2);
@@ -168,14 +172,11 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
 }
 
 uint16_t BMPDrawer::readLE16() {
-  return static_cast<uint16_t>(mFile.read()) | static_cast<uint16_t>(mFile.read()) << 8;
+    return static_cast<uint16_t>(mFile.read()) | static_cast<uint16_t>(mFile.read()) << 8;
 }
 
 uint32_t BMPDrawer::readLE32() {
-  return static_cast<uint32_t>(mFile.read())
-      | static_cast<uint32_t>(mFile.read()) << 8
-      | static_cast<uint32_t>(mFile.read()) << 16
-      | static_cast<uint32_t>(mFile.read()) << 24;
+    return static_cast<uint32_t>(readLE16()) | static_cast<uint32_t>(readLE16()) << 16;
 }
 
 uint16_t BMPDrawer::getLastPoint(const char* path) {

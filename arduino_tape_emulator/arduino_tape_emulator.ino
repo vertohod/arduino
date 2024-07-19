@@ -50,17 +50,21 @@ void drawProgress() {
     BMPDrawer::drawProgress(gScreen, static_cast<float>(gFileReader->getFilePosition()) / gFileReader->getFileSize());
 }
 
+void drawProgressWithClear() {
+    BMPDrawer::drawProgressWithClear(gScreen, static_cast<float>(gFileReader->getFilePosition()) / gFileReader->getFileSize());
+}
+
 void (*int0Functor)() = nullptr;
 void (*int1Functor)() = nullptr;
 
 void FileReaderInt0Handler(void) {
     gFileReader->setPreviousBlock();
-    drawProgress();
+    drawProgressWithClear();
 }
 
 void FileReaderInt1Handler(void) {
     gFileReader->setNextBlock();
-    drawProgress();
+    drawProgressWithClear();
 }
 
 volatile bool gFlipFlop = false;

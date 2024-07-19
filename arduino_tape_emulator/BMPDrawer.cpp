@@ -80,10 +80,16 @@ void BMPDrawer::drawProgressBar() {
 }
 
 void BMPDrawer::drawProgress(Adafruit_ILI9341 &screen, float progress) {
-    uint16_t width = progress * screen.width();
-    screen.fillRect(0, MenuDrawer::getTextPosition(1) + 1, width, MenuDrawer::getTextHeight() - 2, ILI9341_WHITE);
-    width = (0 == width) ? 1 : width + 1;
-    screen.fillRect(width, MenuDrawer::getTextPosition(1) + 1, screen.width() - width - 2, MenuDrawer::getTextHeight() - 2, ILI9341_BLACK);
+    uint16_t width = static_cast<uint16_t>(progress * (screen.width() - 2)) / 4 * 4;
+    screen.drawLine(width + 1, MenuDrawer::getTextPosition(1) + 3, width, MenuDrawer::getTextPosition(1) + MenuDrawer::getTextHeight() - 4, ILI9341_WHITE);
+}
+
+void BMPDrawer::drawProgressWithClear(Adafruit_ILI9341 &screen, float progress) {
+    uint16_t width = progress * (screen.width() - 2);
+    screen.fillRect(width + 1, MenuDrawer::getTextPosition(1) + 3, screen.width() - width - 2, MenuDrawer::getTextHeight() - 6, ILI9341_BLACK);
+    for (uint16_t i = 0; i < width; ++i) {
+        screen.drawLine(i / 4 * 4, MenuDrawer::getTextPosition(1) + 3, i / 4 * 4, MenuDrawer::getTextPosition(1) + MenuDrawer::getTextHeight() - 4, ILI9341_WHITE);
+    } 
 }
 
 void BMPDrawer::drawPause(Adafruit_ILI9341 &screen) {

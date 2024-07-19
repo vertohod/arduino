@@ -23,6 +23,7 @@ public:
     static bool isItBMPFile(const char *path);
     void drawProgressBar();
     static void drawProgress(Adafruit_ILI9341 &screen, float progress);
+    static void drawProgressWithClear(Adafruit_ILI9341 &screen, float progress);
     static void drawPause(Adafruit_ILI9341 &screen);
     static void cleanPause(Adafruit_ILI9341 &screen);
 

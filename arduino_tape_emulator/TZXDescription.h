@@ -30,8 +30,9 @@
 #define TZX_ID35    0x35    // Custom info block
 #define TZX_ID4B    0x4B    // Kansas City block (MSX/BBC/Acorn/...)
 #define TZX_ID5A    0x5A    // Glue block (90 dec, ASCII Letter 'Z')
+#define TZX_EOF     0xFF    // End of file
 
-enum TZXFileTask {
+enum TZXFileStage {
     GET_FILE_HEADER,
     GET_ID,
     PROCESS_ID,
@@ -41,18 +42,18 @@ enum TZXFileTask {
     PROCESS_CHUNK_ID
 };
 
-enum TZXIDTask {
+enum TZXHandlerStage {
     READ_PARAM,
     PILOT,
     SYNC1,
     SYNC2,
     DATA,
-    PAUSE,
     HEADER,
     NAME,
     GAP,
     SYNC_LAST,
-    NAME_LAST
+    NAME_LAST,
+    PAUSE
 };
 
 #endif

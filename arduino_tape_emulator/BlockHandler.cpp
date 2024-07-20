@@ -1,7 +1,12 @@
 #include "BlockHandler.h"
 #include "Timings.h"
 
-BlockHandler::BlockHandler(const char*) {
+BlockHandler::BlockHandler()
+    : mBufferExternalPtr(&mBuffer0[0])
+    , mBufferInPtr(&mBuffer1[0])
+    , mBufferOutPtr(&mBuffer2[0])
+    , mSignalSettings(nullptr)
+{
     init();
 }
 
@@ -9,9 +14,16 @@ bool BlockHandler::isBufferEmpty() {
     return 0 == mLengthIn;
 }
 
-void BlockHandler::fillBuffer(const byte* const buffer, uint16_t length) {
-    memcpy(static_cast<void*>(&mBufferIn[0]), static_cast<const void*>(buffer), length);
+void BlockHandler::fillBuffer(byte *buffer, uint16_t length) {
+    // mBufferInPtr <- mBufferExternalPtr 
+    // mBufferInPtr -> mBufferExternalPtr 
+    mBufferExternalPtr = mBufferInPtr;
+    mBufferInPtr = buffer;
     mLengthIn = length;
+}
+
+void BlockHandler::setSignalSettings(tSignalSettings *signalSettings) {
+    mSignalSettings = signalSettings;
 }
 
 void BlockHandler::init() {
@@ -19,31 +31,35 @@ void BlockHandler::init() {
     mLengthOut = 0;
     mIndexByte = 0;
     mMask = 0;
-    mStage = STAGE::FINISH;
+    mState = STATE::FINISH;
     mPeriod = 0;
 }
 
 bool BlockHandler::moveData() {
     if (0 == mLengthIn) return false;
 
-    memcpy(static_cast<void*>(&mBufferOut[0]), static_cast<const void*>(&mBufferIn[0]), mLengthIn);
+    // mBufferInPtr -> mBufferOutPtr
+    // mBufferInPtr <- mBufferOutPtr
+    auto tempPtr = mBufferOutPtr;
+    mBufferOutPtr = mBufferInPtr;
+    mBufferInPtr = tempPtr;
     mLengthOut = mLengthIn;
+    mLengthIn = 0;
     mIndexByte = 0;
     mMask = 0;
-    mLengthIn = 0;
 
     return true;
 }
 
 void BlockHandler::start(byte type) {
-    mStage = STAGE::PILOT;
-    mImpulseCouter = (0 == type ? SPECTRUM_PILOT_HEADER : SPECTRUM_PILOT_DATA);
+    mState = STATE::PILOT;
+    mImpulseCouter = (0 == type ? mSignalSettings->mPilotHeaderTicks : mSignalSettings->mPilotDataTicks);
 }
 
 bool BlockHandler::getBit() {
     if (0 == mMask) {
         mMask = 0x80;
-        mCurrentByte = mBufferOut[mIndexByte++];
+        mCurrentByte = mBufferOutPtr[mIndexByte++];
         if (mIndexByte == mLengthOut) mLengthOut = 0;
     }
     bool result = mCurrentByte & mMask;
@@ -52,44 +68,44 @@ bool BlockHandler::getBit() {
 }
 
 level BlockHandler::getLevel() {
-    switch (mStage) {
-        case STAGE::PILOT:
-            mPeriod = SPECTRUM_PILOT;
+    switch (mState) {
+        case STATE::PILOT:
+            mPeriod = mSignalSettings->mPeriodPilot;
             if (!mMeanderUp) {
                 --mImpulseCouter;
-                if (0 == mImpulseCouter) mStage = STAGE::SYNC1;
+                if (0 == mImpulseCouter) mState = STATE::SYNC1;
             }
             mMeanderUp = !mMeanderUp;
             return !mMeanderUp;
-        case STAGE::SYNC1:
-            mPeriod = SPECTRUM_SYNC_SGN1;
-            mStage = STAGE::SYNC2;
+        case STATE::SYNC1:
+            mPeriod = mSignalSettings->mSyncSGN1;
+            mState = STATE::SYNC2;
             return HIGH;
-        case STAGE::SYNC2:
-            mPeriod = SPECTRUM_SYNC_SGN2;
-            mStage = STAGE::DATA;
+        case STATE::SYNC2:
+            mPeriod = mSignalSettings->mSyncSGN2;
+            mState = STATE::DATA;
             return LOW;
-        case STAGE::DATA:
+        case STATE::DATA:
             if (mMeanderUp) {
                 if (0 == mLengthOut && 0 == mMask) {
                     if (!moveData()) {
-                        mPeriod = SPECTRUM_SYNC_SGN3;
-                        mStage = STAGE::FINAL1;
+                        mPeriod = mSignalSettings->mSyncSGN3;
+                        mState = STATE::FINAL1;
                         return HIGH;
                     }
                 }
                 mCurrentBitOne = getBit();
             }
-            mPeriod = mCurrentBitOne ? SPECTRUM_BIT_ONE : SPECTRUM_BIT_ZERO;
+            mPeriod = mCurrentBitOne ? mSignalSettings->mPeriodBitOne : mSignalSettings->mPeriodBitZero;
             mMeanderUp = !mMeanderUp;
             return !mMeanderUp;
-        case STAGE::FINAL1:
-            mStage = STAGE::FINAL2;
+        case STATE::FINAL1:
+            mState = STATE::FINAL2;
             return LOW;
-        case STAGE::FINAL2:
-            mStage = STAGE::FINISH;
+        case STATE::FINAL2:
+            mState = STATE::FINISH;
             return LOW;
-        case STAGE::FINISH:
+        case STATE::FINISH:
             init();
             return LOW;
         default:
@@ -102,5 +118,10 @@ float BlockHandler::getPeriod() {
 }
 
 bool BlockHandler::isFinished() {
-    return STAGE::FINISH == mStage;
+    return STATE::FINISH == mState;
 }
+
+byte* BlockHandler::getExternalBuffer() {
+    return mBufferExternalPtr;
+}
+

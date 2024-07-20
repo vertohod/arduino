@@ -4,8 +4,7 @@
 #include "Functions.h"
 
 FileReader::FileReader(SD& sd, const char* fileName)
-    : mSD(sd)
-    , mBlockType(0)
+    : mBlockType(0)
     , mBlockTypeKnown(false)
     , mBlockSize(0)
     , mBlockRead(0)
@@ -13,7 +12,7 @@ FileReader::FileReader(SD& sd, const char* fileName)
     , mState(STATE::READING)
 {
     mFileType = Functions::getFileType(fileName);
-    mFile = mSD.open(fileName);
+    mFile = sd.open(fileName);
 }
 
 FileReader::~FileReader() {
@@ -32,14 +31,6 @@ uint16_t FileReader::getData(byte *buffer, uint16_t bufferSize) {
     if (mState != STATE::READING) return 0;
 
     uint16_t counter = 0;
-    switch (mFileType) {
-        case tFileType::TAP:
-            counter = processFileTAP(buffer, bufferSize);
-        case tFileType::TZX:
-            counter = processFileTZX(buffer, bufferSize);
-        default:
-            break;
-    }
 
     return counter;
 }
@@ -50,10 +41,11 @@ byte FileReader::getBlockType() {
 
 void FileReader::setPause() {
     mState = STATE::PAUSE;
+    mBlockHandler.init();
 }
 
 bool FileReader::isPause() {
-    return STATE::PAUSE == mState;
+    return STATE::PAUSE == mState && mBlockHandler.isFinished() && mBlockHandler.isBufferEmpty();
 }
 
 void FileReader::readContinue(bool lastBlock) {
@@ -68,7 +60,11 @@ void FileReader::readContinue(bool lastBlock) {
 }
 
 bool FileReader::isFinished() {
-    return STATE::END == mState;
+    return STATE::END == mState && mBlockHandler.isFinished();
+}
+
+bool FileReader::isBlockHandlerFinished() {
+    return mBlockHandler.isFinished();
 }
 
 void FileReader::setNextBlock() {
@@ -105,7 +101,7 @@ void FileReader::setPreviousBlock() {
     mFile.seek(mLastBlock);
 }
 
-uint16_t FileReader::processFileTAP(byte *buffer, uint16_t bufferSize) {
+uint16_t FileReader::processData(byte *buffer, uint16_t bufferSize) {
     auto lastPosition = mFile.position();
     if (mBlockSize == 0) {
         mBlockSize = Functions::readLE16(mFile);
@@ -142,7 +138,56 @@ uint16_t FileReader::processFileTAP(byte *buffer, uint16_t bufferSize) {
     return counter;
 }
 
-uint16_t FileReader::processFileTZX(byte *buffer, uint16_t buffer_size)
-{
-    return 0;
+void FileReader::processFile() {
+    switch (mFileType) {
+        case tFileType::TAP:
+            mRange = processFileTAP();
+        case tFileType::TZX:
+            mRange = processFileTZX();
+        default:
+            break;
+    }
+}
+
+tRange FileReader::processFileTAP() {
+    mTZXBlock.setDefaultSettings();
+    mBlockHandler.setSignalSettings(mTZXBlock.getSignalSettings());
+    return tRange(0, mFile.size(), mFile.size());
+}
+
+tRange FileReader::processFileTZX() {
+    mTZXBlock.readHeader(mFile);
+    mTZXBlock.readBlock(mFile);
+    return tRange(0, 0, 0);
+}
+
+void FileReader::prepearData() {
+    auto dataBuffer = mBlockHandler.getExternalBuffer();
+    uint16_t length = getData(dataBuffer, TAPE_BUFFER_SIZE);
+    if (0 < length) {
+        mBlockHandler.fillBuffer(dataBuffer, length);
+        mBlockHandler.start(getBlockType());
+    }
+    return 0 != length;
+}
+
+level FileReader::getLevel() {
+    return mBlockHandler.getLevel();
+}
+
+float FileReader::getPeriod() {
+    return mBlockHandler.getPeriod();
+}
+
+bool FileReader::start() {
+    processFile();
+    prepearData();
+}
+
+void FileReader::moveData() {
+    auto dataBuffer = mBlockHandler.getExternalBuffer();
+    uint16_t length = getData(dataBuffer, TAPE_BUFFER_SIZE);
+    if (length > 0) {
+        mBlockHandler.fillBuffer(dataBuffer, length);
+    }
 }

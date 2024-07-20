@@ -21,4 +21,28 @@ enum tFileType : uint8_t {
     UNKNOWN
 };
 
+struct tSignalSettings {
+    uint16_t        mPilotHeaderTicks;
+    uint16_t        mPilotDataTicks;
+    uint16_t        mPeriodPilot;
+    uint16_t        mSyncSGN1;
+    uint16_t        mSyncSGN2;
+    uint16_t        mSyncSGN3;
+    uint16_t        mPeriodBitOne;
+    uint16_t        mPeriodBitZero;
+    uint8_t         mUsedBits;
+    uint8_t         mPulseSequence;
+};
+
+struct tRange {
+    uint32_t        mBegin;
+    uint32_t        mEnd;
+    uint32_t        mFileSize;
+    tRange() {}
+    tRange(uint32_t begin,  uint32_t end, uint32_t fileSize)
+        : mBegin(begin)
+        , mEnd(end)
+        , mFileSize(fileSize) {}
+};
+
 #endif

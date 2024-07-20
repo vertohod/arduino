@@ -5,12 +5,18 @@
 
 class BlockHandler {
 private:
-    byte        mBufferIn[TAPE_BUFFER_SIZE];
-    byte        mBufferOut[TAPE_BUFFER_SIZE];
-    uint8_t     mLengthIn;
-    uint8_t     mLengthOut;
+    byte            mBuffer0[TAPE_BUFFER_SIZE];
+    byte            mBuffer1[TAPE_BUFFER_SIZE];
+    byte            mBuffer2[TAPE_BUFFER_SIZE];
 
-    enum STAGE {
+    byte            *mBufferExternalPtr;
+    byte            *mBufferInPtr;
+    byte            *mBufferOutPtr;
+
+    uint8_t         mLengthIn;
+    uint8_t         mLengthOut;
+
+    enum STATE {
         PILOT,
         SYNC1,
         SYNC2,
@@ -21,11 +27,13 @@ private:
         FINISH
     };
 
+    tSignalSettings *mSignalSettings;
+
     uint8_t         mIndexByte;
     byte            mMask;
     byte            mCurrentByte;
 
-    STAGE           mStage;
+    STATE           mState;
     bool            mCurrentBitOne;
     level           mMeanderUp;
     uint16_t        mPeriod;
@@ -33,10 +41,11 @@ private:
     uint16_t        mImpulseCouter;
 
 public:
-    BlockHandler(const char*);
+    BlockHandler();
 
     bool isBufferEmpty();
-    void fillBuffer(const byte* const buffer, uint16_t length);
+    void fillBuffer(byte *buffer, uint16_t length);
+    void setSignalSettings(tSignalSettings *signalSettings);
 
 private:
     bool moveData();
@@ -48,6 +57,7 @@ public:
     level getLevel();
     float getPeriod();
     bool isFinished();
+    byte* getExternalBuffer();
 };
 
 #endif

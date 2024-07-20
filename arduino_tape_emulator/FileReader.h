@@ -1,26 +1,31 @@
 #ifndef FILE_READER_H
 #define FILE_READER_H
 
+#include "BlockHandler.h"
+#include "TZXBlock.h"
 #include "Types.h"
 #include "SD.h"
 
 class FileReader {
 private:
-    SD          mSD;
-    tFileType   mFileType;
-    File        mFile;
-    byte        mBlockType;
-    byte        mBlockTypeKnown;
-    uint16_t    mBlockSize;
-    uint16_t    mBlockRead;
-    uint32_t    mLastBlock;
+    tFileType       mFileType;
+    File            mFile;
+    byte            mBlockType;
+    byte            mBlockTypeKnown;
+    uint16_t        mBlockSize;
+    uint16_t        mBlockRead;
+    uint32_t        mLastBlock;
 
     enum STATE {
         READING,
         PAUSE,
         END
     };
-    STATE       mState;
+    STATE           mState;
+
+    TZXBlock        mTZXBlock;
+    BlockHandler    mBlockHandler;
+    tRange          mRange;
 
 public:
     FileReader(SD& sd, const char* fileName);
@@ -28,18 +33,27 @@ public:
 
     uint32_t getFilePosition();
     uint32_t getFileSize();
-    uint16_t getData(byte *buffer, uint16_t buffer_size);
-    byte getBlockType();
     void setPause();
     bool isPause();
     void readContinue(bool lastBlock = false);
     bool isFinished();
+    bool isBlockHandlerFinished();
     void setNextBlock();
     void setPreviousBlock();
 
+    level getLevel();
+    float getPeriod();
+    bool start();
+    void moveData();
+
 private:
-    uint16_t processFileTAP(byte *buffer, uint16_t buffer_size);
-    uint16_t processFileTZX(byte *buffer, uint16_t buffer_size);
+    void prepearData();
+    uint16_t getData(byte *buffer, uint16_t buffer_size);
+    byte getBlockType();
+    uint16_t processData(byte *buffer, uint16_t bufferSize);
+    void processFile();
+    tRange processFileTAP();
+    tRange processFileTZX();
 };
 
 #endif

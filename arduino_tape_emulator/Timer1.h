@@ -1,8 +1,9 @@
 #ifndef TIMER1_H
 #define TIMER1_H
 
-#include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/io.h>
+
 #include "Types.h"
 
 #define TIMER_FRQ_Hz 16000000.0

@@ -1,21 +1,20 @@
-#include "BMPDrawer.h"
-#include "MenuDrawer.h"
 #include "SwitchExceptions.h"
+#include "Definitions.h"
+#include "Extensions.h"
+#include "MenuDrawer.h"
+#include "BMPDrawer.h"
+#include "Functions.h"
 #include "Types.h"
-
-#define PALETTE_SIZE        16
-#define IMAGE_BUFFER_SIZE   16
-#define TEXT_BYTES          "Bytes"
 
 volatile bool gActiveCycle = true;
 
-void drawBMP(Adafruit_ILI9341 &screen, const char *path, bool &isNeededToLoad) {
+void drawBMP(SD& sd, Adafruit_ILI9341 &screen, const char *path, bool &isNeededToLoad) {
     tPath pathImage;
     memcpy(static_cast<void*>(&pathImage[0]), static_cast<const void*>(path), strlen(path) + 1);
-    auto index = BMPDrawer::getLastPoint(pathImage);
-    memcpy(static_cast<void*>(&pathImage[index + 1]), static_cast<const void*>(EXTENSION_BMP), 4);
+    auto index = Functions::getLastPoint(pathImage);
+    strcpy_P(&pathImage[index], extensions[EXTENSION_INDEX_BMP]);
 
-    BMPDrawer drawer(screen);
+    BMPDrawer drawer(sd, screen);
     drawer.drawFileInfo(path);
     drawer.draw(&pathImage[0], 0, 120);
 
@@ -39,23 +38,28 @@ void drawBMP(Adafruit_ILI9341 &screen, const char *path, bool &isNeededToLoad) {
     disableExceptions();
 }
 
-BMPDrawer::BMPDrawer(Adafruit_ILI9341 &screen) : mScreen(screen) {
+BMPDrawer::BMPDrawer(SD& sd, Adafruit_ILI9341 &screen)
+    : mSD(sd)
+    , mScreen(screen)
+{
     mScreen.fillScreen(ILI9341_BLACK);
 }
 
 void BMPDrawer::drawFileInfo(const char *path) {
+    char fileName[100];
     mScreen.setTextColor(ILI9341_WHITE);
-    File file = SD.open(path);
-    uint16_t length = strlen(file.name());
+    File file = mSD.open(path);
+    file.getName(&fileName[0], sizeof(fileName));
+    uint16_t length = strlen(&fileName[0]);
 
     uint16_t xPosition = (mScreen.width() - length * SYMBOL_WIDTH * TEXT_SIZE) / 2;
     mScreen.setCursor(xPosition, MenuDrawer::getMargin());
-    mScreen.println(file.name());
+    mScreen.println(&fileName[0]);
 
     mScreen.setCursor(0, MenuDrawer::getTextPosition(0) + 2);
     mScreen.println("Size:");
 
-    xPosition = mScreen.width() - SYMBOL_WIDTH * TEXT_SIZE * (strlen(TEXT_BYTES) + 2);
+    xPosition = mScreen.width() - SYMBOL_WIDTH * TEXT_SIZE * (strlen_P(TEXT_BYTES) + 2);
     auto sizeByte = file.size();
     while (true) {
         sizeByte = sizeByte / 10;
@@ -67,7 +71,7 @@ void BMPDrawer::drawFileInfo(const char *path) {
     }
     mScreen.setCursor(xPosition, MenuDrawer::getTextPosition(0) + 2);
     mScreen.println(file.size());
-    xPosition = mScreen.width() - SYMBOL_WIDTH * TEXT_SIZE * strlen(TEXT_BYTES);
+    xPosition = mScreen.width() - SYMBOL_WIDTH * TEXT_SIZE * strlen_P(TEXT_BYTES);
     mScreen.setCursor(xPosition, MenuDrawer::getTextPosition(0) + 2);
     mScreen.println(TEXT_BYTES);
 
@@ -111,20 +115,20 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
     byte buffer[IMAGE_BUFFER_SIZE];
     uint16_t outBuffer[IMAGE_BUFFER_SIZE * 2];
 
-    mFile = SD.open(path);
+    mFile = mSD.open(path);
     if (!mFile) {
         return;
     }
 
-    if (readLE16() == 0x4D42) {     // BMP signature
-        readLE32();                 // Read & ignore file size
-        readLE32();                 // Read & ignore creator bytes
-        auto offset = readLE32();   // Start of image data
+    if (Functions::readLE16(mFile) == 0x4D42) {     // BMP signature
+        Functions::readLE32(mFile);                 // Read & ignore file size
+        Functions::readLE32(mFile);                 // Read & ignore creator bytes
+        auto offset = Functions::readLE32(mFile);   // Start of image data
 
         // Read DIB header
-        uint32_t headerSize = readLE32();
-        uint16_t bmpWidth = readLE32();
-        int height = readLE32();
+        uint32_t headerSize = Functions::readLE32(mFile);
+        uint16_t bmpWidth = Functions::readLE32(mFile);
+        int height = Functions::readLE32(mFile);
         uint16_t bmpHeight = height < 0 ? -height : height;
 
         mFile.seek(14 + headerSize);
@@ -169,32 +173,6 @@ void BMPDrawer::draw(const char *path, int16_t xPosition, int16_t yPosition) {
         }
     } 
     mFile.close();
-}
-
-uint16_t BMPDrawer::readLE16() {
-    return static_cast<uint16_t>(mFile.read()) | static_cast<uint16_t>(mFile.read()) << 8;
-}
-
-uint32_t BMPDrawer::readLE32() {
-    return static_cast<uint32_t>(readLE16()) | static_cast<uint32_t>(readLE16()) << 16;
-}
-
-uint16_t BMPDrawer::getLastPoint(const char* path) {
-    uint16_t i = strlen(path);
-    while (0 < --i) {
-        if (path[i] == '.') {
-            return i;
-        }
-    }
-    return 0;
-}
-
-bool BMPDrawer::isItBMPFile(const char *path) {
-    auto lastPoint = getLastPoint(path);
-    if (0 == strcmp(&path[lastPoint + 1], EXTENSION_BMP)) {
-        return true; 
-    }   
-    return false;
 }
 
 void BMPDrawerInt0Handler() {

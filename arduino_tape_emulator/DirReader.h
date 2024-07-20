@@ -3,10 +3,10 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-#include <SD.h>
-#include "Types.h"
 
-#define MENU_LENGTH 7
+#include "Definitions.h"
+#include "Types.h"
+#include "SD.h"
 
 struct tFileInfo {
     tFileName   fileName;
@@ -16,7 +16,10 @@ struct tFileInfo {
 typedef tFileInfo tFileNameList[MENU_LENGTH];
 
 class DirReader {
+private:
+    SD &mSD;
 public:
+    DirReader(SD& sd);
     uint8_t getFileNameList(const char* path, uint16_t position, tFileNameList& fileNameList);
 
 private:

@@ -1,8 +1,6 @@
+#include "Definitions.h"
 #include "MenuDrawer.h"
 #include "Types.h"
-
-#define OUTPUT_PATH_LENGTH 15
-#define THREE_POINTS "..."
 
 MenuDrawer::MenuDrawer(Adafruit_ILI9341 &screen) : mScreen(screen)
 {
@@ -18,7 +16,7 @@ void MenuDrawer::setHeader(const char* text) {
     auto length = min(strlen(text), OUTPUT_PATH_LENGTH);
     memcpy(static_cast<void*>(path), static_cast<const void*>(text), length);
     if (length < strlen(text)) {
-        memcpy(static_cast<void*>(&path[length]), static_cast<const void*>(THREE_POINTS), strlen(THREE_POINTS) + 1);
+        strcpy_P(&path[length], THREE_POINTS);
     } else {
         path[length] = 0;
     }

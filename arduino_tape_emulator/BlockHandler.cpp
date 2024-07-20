@@ -1,23 +1,20 @@
 #include "BlockHandler.h"
+#include "Timings.h"
 
-BlockHandler::BlockHandler(const char*)
-{
+BlockHandler::BlockHandler(const char*) {
     init();
 }
 
-bool BlockHandler::isBufferEmpty()
-{
+bool BlockHandler::isBufferEmpty() {
     return 0 == mLengthIn;
 }
 
-void BlockHandler::fillBuffer(const byte* const buffer, uint16_t length)
-{
+void BlockHandler::fillBuffer(const byte* const buffer, uint16_t length) {
     memcpy(static_cast<void*>(&mBufferIn[0]), static_cast<const void*>(buffer), length);
     mLengthIn = length;
 }
 
-void BlockHandler::init()
-{
+void BlockHandler::init() {
     mLengthIn = 0;
     mLengthOut = 0;
     mIndexByte = 0;
@@ -26,8 +23,7 @@ void BlockHandler::init()
     mPeriod = 0;
 }
 
-bool BlockHandler::moveData()
-{
+bool BlockHandler::moveData() {
     if (0 == mLengthIn) return false;
 
     memcpy(static_cast<void*>(&mBufferOut[0]), static_cast<const void*>(&mBufferIn[0]), mLengthIn);
@@ -39,14 +35,12 @@ bool BlockHandler::moveData()
     return true;
 }
 
-void BlockHandler::start(byte type)
-{
+void BlockHandler::start(byte type) {
     mStage = STAGE::PILOT;
-    mImpulseCouter = (0 == type ? PILOT_HEADER_IMPULSES : PILOT_DATA_IMPULSES);
+    mImpulseCouter = (0 == type ? SPECTRUM_PILOT_HEADER : SPECTRUM_PILOT_DATA);
 }
 
-bool BlockHandler::getBit()
-{
+bool BlockHandler::getBit() {
     if (0 == mMask) {
         mMask = 0x80;
         mCurrentByte = mBufferOut[mIndexByte++];
@@ -60,7 +54,7 @@ bool BlockHandler::getBit()
 level BlockHandler::getLevel() {
     switch (mStage) {
         case STAGE::PILOT:
-            mPeriod = PILOT_SGN;
+            mPeriod = SPECTRUM_PILOT;
             if (!mMeanderUp) {
                 --mImpulseCouter;
                 if (0 == mImpulseCouter) mStage = STAGE::SYNC1;
@@ -68,25 +62,25 @@ level BlockHandler::getLevel() {
             mMeanderUp = !mMeanderUp;
             return !mMeanderUp;
         case STAGE::SYNC1:
-            mPeriod = SYNC_SGN1;
+            mPeriod = SPECTRUM_SYNC_SGN1;
             mStage = STAGE::SYNC2;
             return HIGH;
         case STAGE::SYNC2:
-            mPeriod = SYNC_SGN2;
+            mPeriod = SPECTRUM_SYNC_SGN2;
             mStage = STAGE::DATA;
             return LOW;
         case STAGE::DATA:
             if (mMeanderUp) {
                 if (0 == mLengthOut && 0 == mMask) {
                     if (!moveData()) {
-                        mPeriod = SYNC_SGN3;
+                        mPeriod = SPECTRUM_SYNC_SGN3;
                         mStage = STAGE::FINAL1;
                         return HIGH;
                     }
                 }
                 mCurrentBitOne = getBit();
             }
-            mPeriod = mCurrentBitOne ? LG1_SGN : LG0_SGN;
+            mPeriod = mCurrentBitOne ? SPECTRUM_BIT_ONE : SPECTRUM_BIT_ZERO;
             mMeanderUp = !mMeanderUp;
             return !mMeanderUp;
         case STAGE::FINAL1:
@@ -103,12 +97,10 @@ level BlockHandler::getLevel() {
     }
 }
 
-float BlockHandler::getPeriod()
-{
+float BlockHandler::getPeriod() {
     return static_cast<float>(mPeriod) / Z80_FRQ_Hz * 2;
 }
 
-bool BlockHandler::isFinished()
-{
+bool BlockHandler::isFinished() {
     return STAGE::FINISH == mStage;
 }

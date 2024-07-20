@@ -1,14 +1,19 @@
+#include "TZXDescription.h"
 #include "FileReader.h" 
+#include "Extensions.h"
+#include "Functions.h"
 
-FileReader::FileReader(const char* fileName)
-    : mBlockType(0)
+FileReader::FileReader(SD& sd, const char* fileName)
+    : mSD(sd)
+    , mBlockType(0)
     , mBlockTypeKnown(false)
     , mBlockSize(0)
     , mBlockRead(0)
     , mLastBlock(0)
     , mState(STATE::READING)
 {
-    mFile = SD.open(fileName);
+    mFileType = Functions::getFileType(fileName);
+    mFile = mSD.open(fileName);
 }
 
 FileReader::~FileReader() {
@@ -23,56 +28,19 @@ uint32_t FileReader::getFileSize() {
     return mFile.size();
 }
 
-uint16_t FileReader::getBlockSize() {
-    byte firstByte = 0;
-    byte secondByte = 0;
-
-    if (mFile.available()) {
-        firstByte = mFile.read();
-    }
-    if (mFile.available()) {
-        secondByte = mFile.read();
-    }
-    return firstByte | secondByte << 8;
-}
-
-uint16_t FileReader::getData(byte *buffer, uint16_t buffer_size) {
+uint16_t FileReader::getData(byte *buffer, uint16_t bufferSize) {
     if (mState != STATE::READING) return 0;
 
-    auto lastPosition = mFile.position();
-    if (mBlockSize == 0) {
-        mBlockSize = getBlockSize();
-    }
-    if (mBlockSize == 0) {
-        mState = STATE::END;
-        return 0;
-    }
-
     uint16_t counter = 0;
-    for (; counter < buffer_size;) {
-        if (!mFile.available()) {
-            mState = STATE::END;
-            break; 
-        }
-        buffer[counter] = mFile.read();
-        ++counter;
-        ++mBlockRead;
-
-        if (!mBlockTypeKnown) {
-            mBlockType = buffer[0];
-            mBlockTypeKnown = true;
-            if (0 == mBlockType) {
-                mLastBlock = lastPosition;
-            }
-        }
-        if (mBlockRead == mBlockSize) {
-            if (0 != mBlockType) {
-                mLastBlock = mFile.position();
-            }
-            setPause();
+    switch (mFileType) {
+        case tFileType::TAP:
+            counter = processFileTAP(buffer, bufferSize);
+        case tFileType::TZX:
+            counter = processFileTZX(buffer, bufferSize);
+        default:
             break;
-        }
     }
+
     return counter;
 }
 
@@ -107,7 +75,7 @@ void FileReader::setNextBlock() {
     mFile.seek(mLastBlock);
     uint8_t i = 2;
     while (true) {
-        mLastBlock += getBlockSize() + 2;
+        mLastBlock += Functions::readLE16(mFile) + 2;
         mFile.seek(mLastBlock);
         if (0 != --i) {
             break;
@@ -120,10 +88,10 @@ void FileReader::setPreviousBlock() {
     uint32_t previousPosition = 0;
     uint32_t counter = 0;
     while (0 != mLastBlock) {
-        if (!mFile.available()) {
+        uint32_t blockSize = Functions::readLE16(mFile);
+        if (0 == blockSize) {
             break;
         }
-        uint32_t blockSize = getBlockSize();
         if (0 == mFile.read()) {
             previousPosition = counter;
         }
@@ -135,4 +103,46 @@ void FileReader::setPreviousBlock() {
     }
     mLastBlock = previousPosition;
     mFile.seek(mLastBlock);
+}
+
+uint16_t FileReader::processFileTAP(byte *buffer, uint16_t bufferSize) {
+    auto lastPosition = mFile.position();
+    if (mBlockSize == 0) {
+        mBlockSize = Functions::readLE16(mFile);
+    }
+    if (mBlockSize == 0) {
+        mState = STATE::END;
+        return 0;
+    }
+    uint16_t counter = 0;
+    for (; counter < bufferSize;) {
+        if (!mFile.available()) {
+            mState = STATE::END;
+            break; 
+        }
+        buffer[counter] = mFile.read();
+        ++counter;
+        ++mBlockRead;
+
+        if (!mBlockTypeKnown) {
+            mBlockType = buffer[0];
+            mBlockTypeKnown = true;
+            if (0 == mBlockType) {
+                mLastBlock = lastPosition;
+            }
+        }
+        if (mBlockRead == mBlockSize) {
+            if (0 != mBlockType) {
+                mLastBlock = mFile.position();
+            }
+            setPause();
+            break;
+        }
+    }
+    return counter;
+}
+
+uint16_t FileReader::processFileTZX(byte *buffer, uint16_t buffer_size)
+{
+    return 0;
 }

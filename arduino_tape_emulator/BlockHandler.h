@@ -3,29 +3,14 @@
 
 #include "Types.h"
 
-// Signal duration in ticks
-#define PILOT_SGN       2168
-#define SYNC_SGN1       667
-#define SYNC_SGN2       735
-#define SYNC_SGN3       954
-#define LG1_SGN         1710
-#define LG0_SGN         855
-
-#define PILOT_HEADER_IMPULSES   3228 
-#define PILOT_DATA_IMPULSES     1614 
-
-#define Z80_FRQ_Hz 3500000
-
-class BlockHandler
-{
+class BlockHandler {
 private:
     byte        mBufferIn[TAPE_BUFFER_SIZE];
     byte        mBufferOut[TAPE_BUFFER_SIZE];
     uint8_t     mLengthIn;
     uint8_t     mLengthOut;
 
-    enum STAGE
-    {
+    enum STAGE {
         PILOT,
         SYNC1,
         SYNC2,

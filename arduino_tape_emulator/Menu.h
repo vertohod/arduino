@@ -2,11 +2,13 @@
 #define MENU_H
 
 #include <Arduino.h>
-#include "DirReader.h"
-#include "MenuDrawer.h"
-#include "Types.h"
 
-bool getPathFile(Adafruit_ILI9341 &screen, char* path, uint16_t& position);
+#include "MenuDrawer.h"
+#include "DirReader.h"
+#include "Types.h"
+#include "SD.h"
+
+bool getPathFile(SD &sd, Adafruit_ILI9341 &screen, char* path, uint16_t& position);
 void MenuInt0Handler();
 void MenuInt1Handler();
 
@@ -24,7 +26,7 @@ private:
     uint8_t         mFilesAmount;
 
 public:
-    Menu(Adafruit_ILI9341 &screen, char* path, uint16_t position);
+    Menu(SD &sd, Adafruit_ILI9341 &screen, char* path, uint16_t position);
     void updateMenu();
     void stepUp();
     void stepDn();

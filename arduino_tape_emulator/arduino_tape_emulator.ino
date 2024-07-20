@@ -1,25 +1,20 @@
 #include "SwitchExceptions.h"
 #include "DurationCounter.h"
 #include "BlockHandler.h"
+#include "Definitions.h"
 #include "FileReader.h"
 #include "BMPDrawer.h"
 #include "Timer1.h"
 #include "Menu.h"
+#include "SD.h"
 
 #include <SPI.h>
-#include <SD.h>
-
-#define TFT_CS 7
-#define TFT_DC 9
-#define SD_CS 10
-#define OUTPUT_PIN 4
-#define DURATION_PAUSE 2.0 // seconds
-#define ROOT "/"
 
 Adafruit_ILI9341 gScreen(TFT_CS, TFT_DC);
+SD gSD;
 
 void setup() {
-    if (!SD.begin(SD_CS)) {
+    if (!gSD.begin(SD_CS)) {
         while(true);
     }
     // Enable output to port D
@@ -69,7 +64,7 @@ bool gButtonIsClicked = false; // this is local, but save flash
 void startReading(const char *path) {
     byte localDataBuffer[TAPE_BUFFER_SIZE];
 
-    FileReader localFileRieader(path);
+    FileReader localFileRieader(gSD, path);
     BlockHandler localBlockHandler(ROOT); // ROOT is not needed
 
     gFileReader = static_cast<FileReader*>(&localFileRieader);
@@ -125,11 +120,11 @@ uint16_t gPosition = 0;
 void loop() {
     int0Functor = MenuInt0Handler;
     int1Functor = MenuInt1Handler;
-    bool isNeededToLoad = getPathFile(gScreen, gPathFile, gPosition);
+    bool isNeededToLoad = getPathFile(gSD, gScreen, gPathFile, gPosition);
 
     int0Functor = BMPDrawerInt0Handler;
     int1Functor = BMPDrawerInt1Handler;
-    drawBMP(gScreen, gPathFile, isNeededToLoad);
+    drawBMP(gSD, gScreen, gPathFile, isNeededToLoad);
 
     int0Functor = nullptr;
     int1Functor = nullptr;

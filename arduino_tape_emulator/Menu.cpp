@@ -1,13 +1,11 @@
-#include "Menu.h"
 #include "SwitchExceptions.h"
-
-#define KILOBYTE "KB"
-#define MENU_TIMEOUT 1000000
+#include "Definitions.h"
+#include "Menu.h"
 
 Menu* gMenuPtr = nullptr;
 
-bool getPathFile(Adafruit_ILI9341 &screen, char* path, uint16_t& position) {
-    Menu localMenu(screen, path, position);
+bool getPathFile(SD &sd, Adafruit_ILI9341 &screen, char* path, uint16_t& position) {
+    Menu localMenu(sd, screen, path, position);
     gMenuPtr = &localMenu;
 
     enableExceptions();
@@ -43,8 +41,9 @@ bool getPathFile(Adafruit_ILI9341 &screen, char* path, uint16_t& position) {
     return result;
 }
 
-Menu::Menu(Adafruit_ILI9341 &screen, char* path, uint16_t position)
+Menu::Menu(SD &sd, Adafruit_ILI9341 &screen, char* path, uint16_t position)
     : mMenuDrawer(screen)
+    , mDirReader(sd)
     , mPath(path)
 {
     uint16_t length = strlen(path);
@@ -178,8 +177,8 @@ void Menu::menuDraw(bool quickDraw) {
         const char* fileNameSrc = mFileNameList[i].fileName;
         memcpy(static_cast<void*>(&textOutput[0]), static_cast<const void*>(fileNameSrc), strlen(fileNameSrc));
         if (mFileNameList[i].fileSize > 0) {
-            uint16_t sizePosition = OUTPUT_ITEM_LENGTH - strlen(KILOBYTE) - 1;
-            memcpy(static_cast<void*>(&textOutput[sizePosition]), static_cast<const void*>(KILOBYTE), strlen(KILOBYTE));
+            uint16_t sizePosition = OUTPUT_ITEM_LENGTH - strlen_P(KILOBYTE) - 1;
+            strcpy_P(&textOutput[sizePosition], KILOBYTE);
             uint32_t sizeKb = mFileNameList[i].fileSize / 1024;
             sprintf(textNumber, "%lu", sizeKb);
             --sizePosition;

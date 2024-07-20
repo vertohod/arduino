@@ -1,4 +1,5 @@
 #include <Arduino.h>
+
 #include "SwitchExceptions.h"
 
 void enableExceptions() {

@@ -24,17 +24,6 @@ void setup() {
 
 FileReader *gFileReader = nullptr;
 
-void writeToPort() {
-    PORTD = gFileReader->getLevel() ? 0xff : 0x00;
-    Timer1::instance().start(gFileReader->getPeriod());
-}
-
-void initReading() {
-    if (gFileReader->start()) {
-        writeToPort();
-    }
-}
-
 void drawProgress(bool withClear = false) {
     BMPDrawer::drawProgress(gScreen, withClear, static_cast<float>(gFileReader->getFilePosition()) / gFileReader->getFileSize());
 }
@@ -60,7 +49,7 @@ void startReading(const char *path) {
 
     gFileReader = static_cast<FileReader*>(&localFileRieader);
 
-    initReading();
+    gFileReader->start();
     gFlipFlop = false;
     gButtonIsClicked = false;
     while (true) {
@@ -81,13 +70,13 @@ void startReading(const char *path) {
                     int1Functor = nullptr;
                     BMPDrawer::cleanPause(gScreen);
                     gFileReader->readContinue(true);
-                    initReading();
+                    gFileReader->start();
                 }
                 gFlipFlop = !gFlipFlop;
             }
         }
         if (gFileReader->isPause() == false) {
-            gFileReader->moveData();
+            gFileReader->processing();
             drawProgress();
         }
         if (gFileReader->isFinished()) {
@@ -116,7 +105,7 @@ void loop() {
     }
 }
 
-// ---------- Interuptrs Handlers ------------
+// ---------- Interrupts Handlers ------------
 DurationCounter dc;
 
 ISR(TIMER1_COMPA_vect)
@@ -129,7 +118,7 @@ ISR(TIMER1_COMPA_vect)
             if (dc.enabled()) {
                 if (dc.check(Timer1::instance().duration())) {
                     gFileReader->readContinue();
-                    initReading();
+                    gFileReader->start();
                 }
             } else {
                 dc.set(DURATION_PAUSE);
@@ -137,7 +126,8 @@ ISR(TIMER1_COMPA_vect)
             }
         }
     } else {
-        writeToPort();
+        PORTD = gFileReader->getLevel() ? 0xff : 0x00;
+        Timer1::instance().start(gFileReader->getPeriod());
     }
 }
 

@@ -38,7 +38,7 @@ struct tRange {
     uint32_t        mBegin;
     uint32_t        mEnd;
     uint32_t        mFileSize;
-    tRange() {}
+    tRange() : mBegin(0), mEnd(0), mFileSize(0) {}
     tRange(uint32_t begin,  uint32_t end, uint32_t fileSize)
         : mBegin(begin)
         , mEnd(end)

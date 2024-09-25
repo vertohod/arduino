@@ -9,7 +9,7 @@ FileReader::FileReader(SD& sd, const char* fileName)
     , mBlockSize(0)
     , mBlockRead(0)
     , mLastBlock(0)
-    , mState(STATE::READING)
+    , mState(STATE::END)
 {
     mFileType = Functions::getFileType(fileName);
     mFile = sd.open(fileName);
@@ -25,14 +25,6 @@ uint32_t FileReader::getFilePosition() {
 
 uint32_t FileReader::getFileSize() {
     return mFile.size();
-}
-
-uint16_t FileReader::getData(byte *buffer, uint16_t bufferSize) {
-    if (mState != STATE::READING) return 0;
-
-    uint16_t counter = 0;
-
-    return counter;
 }
 
 byte FileReader::getBlockType() {
@@ -53,7 +45,7 @@ void FileReader::readContinue(bool lastBlock) {
     mBlockTypeKnown = false;
     mBlockSize = 0;
     mBlockRead = 0;
-    mState = STATE::READING;
+    mState = STATE::READ;
     if (lastBlock) {
         mFile.seek(mLastBlock);
     }
@@ -114,7 +106,7 @@ uint16_t FileReader::processData(byte *buffer, uint16_t bufferSize) {
     for (; counter < bufferSize;) {
         if (!mFile.available()) {
             mState = STATE::END;
-            break; 
+            break;
         }
         buffer[counter] = mFile.read();
         ++counter;
@@ -138,13 +130,14 @@ uint16_t FileReader::processData(byte *buffer, uint16_t bufferSize) {
     return counter;
 }
 
-void FileReader::processFile() {
+tRange FileReader::processFile(const tRange& range) {
     switch (mFileType) {
         case tFileType::TAP:
-            mRange = processFileTAP();
+            return processFileTAP();
         case tFileType::TZX:
-            mRange = processFileTZX();
+            return processFileTZX(range);
         default:
+            return tRange();
             break;
     }
 }
@@ -155,15 +148,16 @@ tRange FileReader::processFileTAP() {
     return tRange(0, mFile.size(), mFile.size());
 }
 
-tRange FileReader::processFileTZX() {
+tRange FileReader::processFileTZX(const tRange& range) {
     mTZXBlock.readHeader(mFile);
     mTZXBlock.readBlock(mFile);
+    mBlockHandler.setSignalSettings(mTZXBlock.getSignalSettings());
     return tRange(0, 0, 0);
 }
 
 void FileReader::prepearData() {
     auto dataBuffer = mBlockHandler.getExternalBuffer();
-    uint16_t length = getData(dataBuffer, TAPE_BUFFER_SIZE);
+    uint16_t length = processData(dataBuffer, TAPE_BUFFER_SIZE);
     if (0 < length) {
         mBlockHandler.fillBuffer(dataBuffer, length);
         mBlockHandler.start(getBlockType());
@@ -179,15 +173,21 @@ float FileReader::getPeriod() {
     return mBlockHandler.getPeriod();
 }
 
-bool FileReader::start() {
-    processFile();
-    prepearData();
+void FileReader::start() {
+    mState = STATE::BEGIN;
 }
 
-void FileReader::moveData() {
-    auto dataBuffer = mBlockHandler.getExternalBuffer();
-    uint16_t length = getData(dataBuffer, TAPE_BUFFER_SIZE);
-    if (length > 0) {
-        mBlockHandler.fillBuffer(dataBuffer, length);
+void FileReader::processing() {
+    if (STATE::BEGIN == mState) {
+        mRange = processFile(tRange());
+        prepearData();
+        mState = STATE::READ;
+    }
+    if (STATE::READ == mState) {
+        auto dataBuffer = mBlockHandler.getExternalBuffer();
+        uint16_t length = processData(dataBuffer, TAPE_BUFFER_SIZE);
+        if (length > 0) {
+            mBlockHandler.fillBuffer(dataBuffer, length);
+        }
     }
 }

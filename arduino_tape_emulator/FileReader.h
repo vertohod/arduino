@@ -17,7 +17,8 @@ private:
     uint32_t        mLastBlock;
 
     enum STATE {
-        READING,
+        BEGIN,
+        READ,
         PAUSE,
         END
     };
@@ -43,17 +44,16 @@ public:
 
     level getLevel();
     float getPeriod();
-    bool start();
-    void moveData();
+    void start();
+    void processing();
 
 private:
     void prepearData();
-    uint16_t getData(byte *buffer, uint16_t buffer_size);
     byte getBlockType();
     uint16_t processData(byte *buffer, uint16_t bufferSize);
-    void processFile();
+    tRange processFile(const tRange& range);
     tRange processFileTAP();
-    tRange processFileTZX();
+    tRange processFileTZX(const tRange& range);
 };
 
 #endif

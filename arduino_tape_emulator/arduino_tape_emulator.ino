@@ -23,7 +23,7 @@ void setup() {
         while(true);
     }
     // Enable output to port D
-    DDRD = B00010000;
+    DDRD |= (1 << PD4);
     gScreen.begin();
     gScreen.setTextSize(TEXT_SIZE);
 }
@@ -33,7 +33,11 @@ BlockHandler *gBlockHandler = nullptr;
 byte* gDataBufferPtr = nullptr;
 
 void writeToPort() {
-    PORTD = gBlockHandler->getLevel() ? 0xff : 0x00;
+    if (gBlockHandler->getLevel()) {
+        PORTD |= (1 << PD4); 
+    } else {
+        PORTD &= ~(1 << PD4); 
+    }
     Timer1::instance().start(gBlockHandler->getPeriod());
 }
 
@@ -54,12 +58,12 @@ void (*int0Functor)() = nullptr;
 void (*int1Functor)() = nullptr;
 
 void FileReaderInt0Handler(void) {
-    gFileReader->setPreviousBlock();
+    gFileReader->setNextBlock();
     drawProgress(true);
 }
 
 void FileReaderInt1Handler(void) {
-    gFileReader->setNextBlock();
+    gFileReader->setPreviousBlock();
     drawProgress(true);
 }
 
@@ -80,7 +84,7 @@ void startReading(const char *path) {
     gFlipFlop = false;
     gButtonIsClicked = false;
     while (true) {
-        if (PIND & B00100000) {
+        if (PIND & (1 << PD5)) {
             gButtonIsClicked = false;
         } else {
             if (!gButtonIsClicked) {
@@ -163,28 +167,16 @@ ISR(TIMER1_COMPA_vect)
     }
 }
 
-bool gEncoderInt0;
-bool gEncoderInt1;
 ISR(INT0_vect)
 {
-    if (gEncoderInt1) {
-        gEncoderInt1 = false;
-        if (int0Functor) {
-            int0Functor();
-        }
-    } else {
-        gEncoderInt0 = true;
+    if (!(PIND & (1 << PD3))) {
+        if (int0Functor) int0Functor();
     }
 }
 
 ISR(INT1_vect)
 {
-    if (gEncoderInt0) {
-        gEncoderInt0 = false;
-        if (int1Functor) {
-            int1Functor();
-        }
-    } else {
-        gEncoderInt1 = true;
+    if (!(PIND & (1 << PD2))) {
+        if (int1Functor) int1Functor();
     }
 }

@@ -15,7 +15,7 @@ bool getPathFile(Adafruit_ILI9341 &screen, char* path, uint16_t& position) {
     bool result = false;
     bool buttonIsClicked = false;
     while (true) {
-        if (!(PIND & B00100000)) {
+        if (!(PIND & (1 << PD5))) {
             if (!buttonIsClicked) {
                 buttonIsClicked = true;
                 if (gMenuPtr->clickHandler(false)) {

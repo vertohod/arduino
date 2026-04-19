@@ -26,7 +26,7 @@ void drawBMP(Adafruit_ILI9341 &screen, const char *path, bool &isNeededToLoad) {
     enableExceptions();
     bool buttonIsClicked = false;
     while (gActiveCycle) {
-        if (PIND & B00100000) {
+        if (PIND & (1 << PD5)) {
             buttonIsClicked = false;
         } else {
             if (!buttonIsClicked) {
